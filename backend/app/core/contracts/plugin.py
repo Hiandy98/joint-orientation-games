@@ -1,5 +1,6 @@
 from abc import ABC
 from enum import Enum
+import inspect
 from typing import Any
 
 
@@ -20,20 +21,18 @@ class BasePlugin(ABC):
     priority: PluginPriority = PluginPriority.APP
     depends_on: list[str] = []
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
 
-        if "name" not in cls.__dict__ or not cls.__dict__["name"]:
-            raise TypeError(f"類別 '{cls.__name__}' 必須明確定義類別屬性 `name` (且不能為空字串)")
-
-        if not isinstance(cls.depends_on, list) or not all(isinstance(x, str) for x in cls.depends_on):
-            raise TypeError(f"插件 '{cls.name}' 的 `depends_on` 必須是 list[str]")
-
-        if not isinstance(cls.priority, PluginPriority):
-            raise TypeError(f"插件 '{cls.name}' 的 `priority` 必須是 PluginPriority 枚舉項")
+        if cls._is_abstract_class():
+            return
         
-    def __init__(self, context: PluginContext) -> None:
-        self._ctx = context
+        cls._validate_identity_defined()
+        cls._validate_dependencies_format()
+        cls._validate_priority_format()
+
+    def __init__(self) -> None:
+        self._ctx: PluginContext | None = None
 
     @property
     def ctx(self) -> PluginContext:
@@ -64,3 +63,28 @@ class BasePlugin(ABC):
         - 系統關閉或插件卸載時呼叫，用於關閉連線池、釋放記憶體資源。
         """
         pass
+
+    @classmethod
+    def _validate_identity_defined(cls) -> None:
+        has_name = "name" in cls.__dict__
+        is_empty = not cls.__dict__.get("name")
+        if not has_name or is_empty:
+            raise TypeError(f"類別 '{cls.__name__}' 必須明確定義類別屬性 `name` (且不能為空字串)")
+
+    @classmethod
+    def _validate_dependencies_format(cls) -> None:
+        deps = cls.__dict__.get("depends_on", cls.depends_on)
+        is_list = isinstance(deps, list)
+        all_items_are_str = is_list and all(isinstance(x, str) for x in deps)
+        if not is_list or not all_items_are_str:
+            raise TypeError(f"類別 '{cls.__name__}' 的 `depends_on` 必須是 list[str]")
+
+    @classmethod
+    def _validate_priority_format(cls) -> None:
+        prio = cls.__dict__.get("priority", cls.priority)
+        if not isinstance(prio, PluginPriority):
+            raise TypeError(f"類別 '{cls.__name__}' 的 `priority` 必須是 PluginPriority 枚舉項")
+
+    @classmethod
+    def _is_abstract_class(cls) -> bool:
+        return inspect.isabstract(cls)
