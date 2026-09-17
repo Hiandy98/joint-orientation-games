@@ -1,4 +1,4 @@
-from abc import ABC, ABCMeta, abstractmethod
+from abc import ABC
 from enum import Enum
 from typing import Any
 
@@ -32,5 +32,34 @@ class BasePlugin(ABC):
             )
 
     def __init__(self, context: PluginContext) -> None:
-        self.ctx = context
-    
+        self._ctx = context
+
+    @property
+    def ctx(self) -> PluginContext:
+        if self._ctx is None:
+            raise RuntimeError(f"拒絕存取: 插件 [{self.name}] 尚未進入註冊階段, ctx 尚未注入")
+        return self._ctx
+
+    def register(self, context: PluginContext) -> None:
+        """
+        註冊階段說明
+        - 僅用於向 `self.ctx.services` 註冊提供給外部的服務。
+        - 僅用於向 `self.ctx.events` 訂閱事件。
+        - "禁止"在此階段進行 DB 操作、網路連線或觸發業務邏輯。
+        """
+        self._ctx = context
+
+    def start(self) -> None:
+        """
+        啟動階段說明
+        - 所有插件完成註冊後按依賴順序調用。
+        - 可在此進行資料庫初始化連線、啟動定時任務或觸發初始化等的業務邏輯。
+        """
+        pass
+
+    def stop(self) -> None:
+        """
+        停用/資源釋放階段說明
+        - 系統關閉或插件卸載時呼叫，用於關閉連線池、釋放記憶體資源。
+        """
+        pass
