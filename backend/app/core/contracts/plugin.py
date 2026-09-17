@@ -23,14 +23,15 @@ class BasePlugin(ABC):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
-        if not hasattr(cls, "name") or not cls.name:
-            raise TypeError(f"類別 {cls.__name__} 必須定義類別屬性 `name`")
+        if "name" not in cls.__dict__ or not cls.__dict__["name"]:
+            raise TypeError(f"類別 '{cls.__name__}' 必須明確定義類別屬性 `name` (且不能為空字串)")
 
-        if not isinstance(cls.depends_on, list):
-            raise TypeError(
-                f"插件 '{cls.name}' 的 `depends_on` 必須是一個 list[str]"
-            )
+        if not isinstance(cls.depends_on, list) or not all(isinstance(x, str) for x in cls.depends_on):
+            raise TypeError(f"插件 '{cls.name}' 的 `depends_on` 必須是 list[str]")
 
+        if not isinstance(cls.priority, PluginPriority):
+            raise TypeError(f"插件 '{cls.name}' 的 `priority` 必須是 PluginPriority 枚舉項")
+        
     def __init__(self, context: PluginContext) -> None:
         self._ctx = context
 
