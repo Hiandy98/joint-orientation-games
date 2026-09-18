@@ -1,0 +1,44 @@
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Dict, Any, Callable
+from uuid import uuid4
+from datetime import datetime
+
+
+@dataclass
+class Event:
+    name: str
+    payload: Dict[str, Any] = field(default_factory=dict)
+    event_id: str = field(default_factory=lambda: str(uuid4()))
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+
+
+EventHandler = Callable[[Event], None]
+
+
+class IEventBus(ABC):
+
+    @abstractmethod
+    def subscribe(self, event_name: str, handler: EventHandler) -> None:
+        """
+        訂閱指定事件\n
+        :param event_name: 事件名稱 (如: "user.created")\n
+        :param handler: 事件觸發時要呼叫的 Callback 函式
+        """
+        pass
+
+    @abstractmethod
+    def unsubscribe(self, event_name: str, handler: EventHandler) -> None:
+        """
+        取消訂閱指定事件
+        """
+        pass
+
+    @abstractmethod
+    def publish(self, event_name: str, payload: Dict[str, Any] | None = None) -> None:
+        """
+        發布事件\n
+        :param event_name: 事件名稱
+        :param payload: 傳遞給訂閱者的資料字典
+        """
+        pass
