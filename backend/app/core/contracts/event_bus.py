@@ -29,18 +29,11 @@ class IEventBus(ABC):
         pass
 
     @abstractmethod
-    def unsubscribe(self, event_name: str, handler: EventHandler) -> None:
-        """
-        取消訂閱指定事件
-        """
-        pass
-
-    @abstractmethod
-    def publish(self, event_name: str, payload: Dict[str, Any] | None = None) -> None:
+    def publish(self, event_name: str, **kwargs: Any) -> None:
         """
         發布事件
 
         :param event_name: 事件名稱
-        :param payload: 傳遞給訂閱者的資料字典
+        :param kwargs: 傳遞給訂閱者的資料，會被打包成 Event.payload
         """
         pass

@@ -21,18 +21,14 @@ class EventBus(IEventBus):
             ref = self._to_weakref(handler)
             self._subscribers[event_name].append(ref)
 
-    def unsubscribe(self, event_name: str, handler: EventHandler) -> None:
-        self._subscribers[event_name] = [
-            ref for ref in self._subscribers[event_name]
-            if self._should_keep_ref(ref, target_handler=handler)
-        ]
-
-    def publish(self, event_name: str, payload: Dict[str, Any] | None = None) -> None:
-        event = Event(name=event_name, payload=payload or {})
+    def publish(self, event_name: str, **kwargs: Any) -> None:
+        event = Event(name=event_name, payload=kwargs)
         active_handlers = self._get_and_clean_handlers(event_name)
 
         for handler in active_handlers:
             self._execute_handler(handler, event)
+
+    # 弱引用防止記憶體洩漏問題
 
     def _to_weakref(self, handler: EventHandler) -> Any:
         if inspect.ismethod(handler):
@@ -42,17 +38,14 @@ class EventBus(IEventBus):
     def _unpack_ref(self, ref: Any) -> EventHandler | None:
         return ref()
 
-    def _should_keep_ref(self, ref: Any, target_handler: EventHandler) -> bool:
-        current_handler = self._unpack_ref(ref)
-        return current_handler is not None and current_handler != target_handler
-
     def _get_and_clean_handlers(self, event_name: str) -> List[EventHandler]:
         active_handlers, valid_refs = self._filter_active_subscribers(event_name)
-
         self._subscribers[event_name] = valid_refs
         return active_handlers
 
-    def _filter_active_subscribers(self, event_name: str) -> tuple[List[EventHandler], List[Any]]:
+    def _filter_active_subscribers(
+        self, event_name: str
+    ) -> tuple[List[EventHandler], List[Any]]:
         active_handlers: List[EventHandler] = []
         valid_refs: List[Any] = []
 
@@ -64,7 +57,9 @@ class EventBus(IEventBus):
 
         return active_handlers, valid_refs
 
-    def _is_already_subscribed_and_clean(self, event_name: str, handler: EventHandler) -> bool:
+    def _is_already_subscribed_and_clean(
+        self, event_name: str, handler: EventHandler
+    ) -> bool:
         active_handlers, valid_refs = self._filter_active_subscribers(event_name)
         self._subscribers[event_name] = valid_refs
         return handler in active_handlers
