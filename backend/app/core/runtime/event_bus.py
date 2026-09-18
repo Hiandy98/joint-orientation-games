@@ -43,9 +43,7 @@ class EventBus(IEventBus):
         self._subscribers[event_name] = valid_refs
         return active_handlers
 
-    def _filter_active_subscribers(
-        self, event_name: str
-    ) -> tuple[List[EventHandler], List[Any]]:
+    def _filter_active_subscribers(self, event_name: str) -> tuple[List[EventHandler], List[Any]]:
         active_handlers: List[EventHandler] = []
         valid_refs: List[Any] = []
 
@@ -57,9 +55,7 @@ class EventBus(IEventBus):
 
         return active_handlers, valid_refs
 
-    def _is_already_subscribed_and_clean(
-        self, event_name: str, handler: EventHandler
-    ) -> bool:
+    def _is_already_subscribed_and_clean(self, event_name: str, handler: EventHandler) -> bool:
         active_handlers, valid_refs = self._filter_active_subscribers(event_name)
         self._subscribers[event_name] = valid_refs
         return handler in active_handlers
