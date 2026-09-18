@@ -12,18 +12,100 @@ from app.core.contracts.event_bus import IEventBus, Event, EventHandler
 logger = logging.getLogger(__name__)
 
 
+class _SubscriberRegistry:
+    """管理事件 --> 訂閱者的弱引用之映射"""
+
+    def __init__(self) -> None:
+        self._refs: Dict[str, List[Any]] = defaultdict(list)
+
+    def add(self, event_name: str, handler: EventHandler) -> None:
+        """加入訂閱
+        (已訂閱過則不重複加入)"""
+        active, valid_refs = self._collect(event_name)
+        if handler not in active:
+            valid_refs.append(self._to_weakref(handler))
+        self._refs[event_name] = valid_refs
+
+    def get_active(self, event_name: str) -> List[EventHandler]:
+        """取出目前仍有效的 handler，並順手清掉失效的 ref"""
+        active, valid_refs = self._collect(event_name)
+        self._refs[event_name] = valid_refs
+        return active
+
+    @staticmethod
+    def _to_weakref(handler: EventHandler) -> Any:
+        if inspect.ismethod(handler):
+            return weakref.WeakMethod(handler)
+        return weakref.ref(handler)
+
+    def _collect(self, event_name: str) -> tuple[List[EventHandler], List[Any]]:
+        active: List[EventHandler] = []
+        valid_refs: List[Any] = []
+        for ref in self._refs[event_name]:
+            handler = ref()
+            if handler is not None:
+                active.append(handler)
+                valid_refs.append(ref)
+        return active, valid_refs
+
+
+class _HandlerExecutor:
+    """
+    支援同步與非同步 handler，自己記得非同步要await。
+    """
+
+    async def run_all(
+        self, handlers: List[EventHandler], event: Event, *, concurrent: bool = True,
+    ) -> None:
+        if not handlers:
+            return
+
+        if concurrent:
+            await self._run_concurrently(handlers, event)
+        else:
+            await self._run_sequentially(handlers, event)
+
+    async def _run_concurrently(self, handlers: List[EventHandler], event: Event) -> None:
+        """執行+蒐集異常"""
+        await asyncio.gather(
+            *(self._run_one(h, event) for h in handlers),
+            return_exceptions=True,
+        )
+
+    async def _run_sequentially(self, handlers: List[EventHandler], event: Event) -> None:
+        for handler in handlers:
+            await self._run_one(handler, event)
+
+    async def _run_one(self, handler: EventHandler, event: Event) -> None:
+        """會自動識別並處理非同步/同步，並捕獲其異常"""
+        try:
+            result = handler(event)
+            if inspect.isawaitable(result):
+                await result
+        except Exception as e:
+            self._handle_exception(handler, event, e)
+
+    def _handle_exception(self, handler: EventHandler, event: Event, e: Exception) -> None:
+        handler_name = getattr(handler, "__name__", str(handler))
+        logger.error(
+            f"Execution failed for handler '{handler_name}' "
+            f"on event '{event.name}': {e}",
+            exc_info=True,
+        )
+
+
 class EventBus(IEventBus):
 
     def __init__(self) -> None:
-        self._subscribers: Dict[str, List[Any]] = defaultdict(list)
+        self._subscribers = _SubscriberRegistry()
+        self._executor = _HandlerExecutor()
 
     def subscribe(self, event_name: str, handler: EventHandler) -> None:
-        if not self._is_already_subscribed_and_clean(event_name, handler):
-            ref = self._to_weakref(handler)
-            self._subscribers[event_name].append(ref)
+        self._subscribers.add(event_name, handler)
 
     async def publish(
-        self, event_name: str, *, gather: bool = True, **kwargs: Any) -> None:
+        self, event_name: str, *, gather: bool = True, **kwargs: Any
+    ) -> None:
         """
         非同步發布事件。
 
@@ -32,60 +114,5 @@ class EventBus(IEventBus):
         :param kwargs: 傳遞給訂閱者的資料，會被打包成 Event.payload
         """
         event = Event(name=event_name, payload=kwargs)
-        active_handlers = self._get_and_clean_handlers(event_name)
-
-        if not active_handlers:
-            return
-
-        if gather:
-            await asyncio.gather(
-                *(self._execute_handler(handler, event) for handler in active_handlers),
-                return_exceptions=True,
-            )
-        else:
-            for handler in active_handlers:
-                await self._execute_handler(handler, event)
-
-    # 弱引用防止記憶體洩漏問題 ---
-
-    def _to_weakref(self, handler: EventHandler) -> Any:
-        if inspect.ismethod(handler):
-            return weakref.WeakMethod(handler)
-        return weakref.ref(handler)
-
-    def _unpack_ref(self, ref: Any) -> EventHandler | None:
-        return ref()
-
-    def _get_and_clean_handlers(self, event_name: str) -> List[EventHandler]:
-        active_handlers, valid_refs = self._filter_active_subscribers(event_name)
-        self._subscribers[event_name] = valid_refs
-        return active_handlers
-
-    def _filter_active_subscribers(self, event_name: str) -> tuple[List[EventHandler], List[Any]]:
-        active_handlers: List[EventHandler] = []
-        valid_refs: List[Any] = []
-
-        for ref in self._subscribers[event_name]:
-            handler = self._unpack_ref(ref)
-            if handler is not None:
-                active_handlers.append(handler)
-                valid_refs.append(ref)
-
-        return active_handlers, valid_refs
-
-    def _is_already_subscribed_and_clean(self, event_name: str, handler: EventHandler) -> bool:
-        active_handlers, valid_refs = self._filter_active_subscribers(event_name)
-        self._subscribers[event_name] = valid_refs
-        return handler in active_handlers
-
-    async def _execute_handler(self, handler: EventHandler, event: Event) -> None:
-        try:
-            result = handler(event)
-            if inspect.isawaitable(result):
-                await result
-        except Exception as e:
-            handler_name = getattr(handler, "__name__", str(handler))
-            logger.error(
-                f"Execution failed for handler '{handler_name}' on event '{event.name}': {e}",
-                exc_info=True,
-            )
+        handlers = self._subscribers.get_active(event_name)
+        await self._executor.run_all(handlers, event, concurrent=gather)
