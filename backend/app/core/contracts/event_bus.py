@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Awaitable, Union
 from uuid import uuid4
 from datetime import datetime, timezone
 
@@ -13,7 +13,10 @@ class Event:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-EventHandler = Callable[[Event], None]
+SyncEventHandler = Callable[[Event], None]
+AsyncEventHandler = Callable[[Event], Awaitable[None]]
+EventHandler = Union[SyncEventHandler, AsyncEventHandler]
+
 
 
 class IEventBus(ABC):
@@ -29,7 +32,7 @@ class IEventBus(ABC):
         pass
 
     @abstractmethod
-    def publish(self, event_name: str, **kwargs: Any) -> None:
+    async def publish(self, event_name: str, **kwargs: Any) -> None:
         """
         發布事件
 

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import inspect
 import weakref
@@ -21,14 +22,31 @@ class EventBus(IEventBus):
             ref = self._to_weakref(handler)
             self._subscribers[event_name].append(ref)
 
-    def publish(self, event_name: str, **kwargs: Any) -> None:
+    async def publish(
+        self, event_name: str, *, gather: bool = True, **kwargs: Any) -> None:
+        """
+        非同步發布事件。
+
+        :param event_name: 事件名稱
+        :param gather: True 時並發執行所有 handler; False 時按訂閱順序串行執行
+        :param kwargs: 傳遞給訂閱者的資料，會被打包成 Event.payload
+        """
         event = Event(name=event_name, payload=kwargs)
         active_handlers = self._get_and_clean_handlers(event_name)
 
-        for handler in active_handlers:
-            self._execute_handler(handler, event)
+        if not active_handlers:
+            return
 
-    # 弱引用防止記憶體洩漏問題
+        if gather:
+            await asyncio.gather(
+                *(self._execute_handler(handler, event) for handler in active_handlers),
+                return_exceptions=True,
+            )
+        else:
+            for handler in active_handlers:
+                await self._execute_handler(handler, event)
+
+    # 弱引用防止記憶體洩漏問題 ---
 
     def _to_weakref(self, handler: EventHandler) -> Any:
         if inspect.ismethod(handler):
@@ -60,9 +78,11 @@ class EventBus(IEventBus):
         self._subscribers[event_name] = valid_refs
         return handler in active_handlers
 
-    def _execute_handler(self, handler: EventHandler, event: Event) -> None:
+    async def _execute_handler(self, handler: EventHandler, event: Event) -> None:
         try:
-            handler(event)
+            result = handler(event)
+            if inspect.isawaitable(result):
+                await result
         except Exception as e:
             handler_name = getattr(handler, "__name__", str(handler))
             logger.error(
