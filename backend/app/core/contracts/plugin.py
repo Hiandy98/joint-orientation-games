@@ -1,9 +1,13 @@
-from abc import ABC
-from dataclasses import dataclass
 import inspect
 import logging
+
+from abc import ABC
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, ClassVar
+
+from app.core.contracts.service import IService
+from app.core.contracts.event_bus import IEventBus
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +29,8 @@ class PluginPriority(Enum):
 
 @dataclass
 class PluginContext:
-    services: Any
-    events: Any
+    services: IService
+    events: IEventBus
     logger: logging.Logger
 
 
