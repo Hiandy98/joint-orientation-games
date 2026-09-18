@@ -3,50 +3,25 @@ import logging
 import inspect
 import weakref
 
-from typing import Dict, List, Any
-from collections import defaultdict
+from typing import List, Any
 
 from app.core.contracts.event_bus import IEventBus, Event, EventHandler
+from app.core.runtime.weakref_registry import WeakRefRegistry
 
 
 logger = logging.getLogger(__name__)
 
 
 class _SubscriberRegistry:
-    """管理事件 --> 訂閱者的弱引用之映射"""
 
     def __init__(self) -> None:
-        self._refs: Dict[str, List[Any]] = defaultdict(list)
+        self._registry = WeakRefRegistry[EventHandler]()
 
     def add(self, event_name: str, handler: EventHandler) -> None:
-        """加入訂閱
-        (已訂閱過則不重複加入)"""
-        active, valid_refs = self._collect(event_name)
-        if handler not in active:
-            valid_refs.append(self._to_weakref(handler))
-        self._refs[event_name] = valid_refs
+        self._registry.add(event_name, handler)
 
-    def get_active(self, event_name: str) -> List[EventHandler]:
-        """取出目前仍有效的 handler，並順手清掉失效的 ref"""
-        active, valid_refs = self._collect(event_name)
-        self._refs[event_name] = valid_refs
-        return active
-
-    @staticmethod
-    def _to_weakref(handler: EventHandler) -> Any:
-        if inspect.ismethod(handler):
-            return weakref.WeakMethod(handler)
-        return weakref.ref(handler)
-
-    def _collect(self, event_name: str) -> tuple[List[EventHandler], List[Any]]:
-        active: List[EventHandler] = []
-        valid_refs: List[Any] = []
-        for ref in self._refs[event_name]:
-            handler = ref()
-            if handler is not None:
-                active.append(handler)
-                valid_refs.append(ref)
-        return active, valid_refs
+    def get_active(self, event_name: str) -> list[EventHandler]:
+        return self._registry.get_all(event_name)
 
 
 class _HandlerExecutor:
