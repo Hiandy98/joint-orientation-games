@@ -1,7 +1,7 @@
 import { type Logger } from "pino";
 
-export class PluginContent {
+export interface PluginContext {
   service: any
   event: any
-  log!: Logger
+  log: Logger
 }
