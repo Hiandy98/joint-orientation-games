@@ -46,13 +46,26 @@ export const loggerMiddleware = createMiddleware<LoggerEnv>(
 
     reqLogger.info({ msg: "Incoming request" });
 
-    const startTime = performance.now();
+    const startTime = logIncomingRequest(reqLogger);
 
     try {
       await next();
     } finally {
-      const duration = (performance.now() - startTime).toFixed(2);
-      reqLogger.info({ msg: "Request processed", status: c.res.status, duration: `${duration}ms` });
+      logCompletedRequest(reqLogger, startTime, c.res.status);
     }
   }
 );
+
+function logIncomingRequest(log: Logger) {
+  log.info({ msg: "Incoming request" });
+  return performance.now();
+}
+
+function logCompletedRequest(log: Logger, startTime: number, status: number) {
+  const duration = (performance.now() - startTime).toFixed(2);
+  log.info({
+    msg: "Request processed",
+    status,
+    duration: `${duration}ms`,
+  });
+}
