@@ -1,7 +1,7 @@
 import { type Logger } from "pino";
 
 export interface PluginContext {
-  service: any
+  services: any
   event: any
   log: Logger
   bus: any
