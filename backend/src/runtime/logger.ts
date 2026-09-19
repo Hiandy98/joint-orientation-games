@@ -5,8 +5,14 @@ import { config } from "./config.js";
 
 const getTransport = (env: string) => {
   switch (env) {
-    case 'development': 
-      return { target: "pino-pretty", options: { colorize: true } };
+    case 'development':
+      return { 
+        target: "pino-pretty", 
+        options: { 
+          colorize: true,
+          translateTime: "SYS:standard",
+        } 
+      };
     default: 
       return undefined;
   }
