@@ -1,11 +1,20 @@
 import { createMiddleware } from "hono/factory";
 import pino, {type Logger} from "pino";
 
-export const baseLogger = pino({
-  transport: {
-    target: "pino-pretty",
-    options: {colorize: true}
+import { config } from "./config.js";
+
+const getTransport = (env: string) => {
+  switch (env) {
+    case 'development': 
+      return { target: "pino-pretty", options: { colorize: true } };
+    default: 
+      return undefined;
   }
+};
+
+export const baseLogger = pino({
+  level: config.LOG_LEVEL,
+  transport: getTransport(config.NODE_ENV)
 })
 
 type LoggerEnv = {
@@ -25,3 +34,4 @@ export const loggerMiddleware = createMiddleware<LoggerEnv>(
 
   await next();
 });
+
