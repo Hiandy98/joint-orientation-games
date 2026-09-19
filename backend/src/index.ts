@@ -1,9 +1,24 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
+import type { Logger } from 'pino'
 
-const app = new Hono()
+import { loggerMiddleware } from './runtime/logger.js'
+
+type Env = {
+  Variables: {
+    logger: Logger
+  }
+}
+
+const app = new Hono<Env>()
+
+app.use('*', loggerMiddleware)
 
 app.get('/', (c) => {
+  const log = c.get('logger')
+
+  log.info('Logger Tested')
+
   return c.text('Hello Hono!')
 })
 
