@@ -1,12 +1,19 @@
 import { createMiddleware } from "hono/factory";
-import pino, {type Logger} from "pino";
+import { randomUUID } from "node:crypto";
+import pino, { type Logger } from "pino";
 
 import { config } from "./config.js";
 
-const getTransport = (env: string) => {
+const getTransport = (env: string): pino.TransportSingleOptions | undefined => {
   switch (env) {
-    case 'development': 
-      return { target: "pino-pretty", options: { colorize: true } };
+    case 'development':
+      return { 
+        target: "pino-pretty", 
+        options: { 
+          colorize: true,
+          translateTime: "SYS:standard",
+        } 
+      };
     default: 
       return undefined;
   }
@@ -15,7 +22,7 @@ const getTransport = (env: string) => {
 export const baseLogger = pino({
   level: config.LOG_LEVEL,
   transport: getTransport(config.NODE_ENV)
-})
+});
 
 type LoggerEnv = {
   Variables: {
@@ -25,13 +32,27 @@ type LoggerEnv = {
 
 export const loggerMiddleware = createMiddleware<LoggerEnv>(
   async (c, next) => {
+    const requestId = c.req.header("x-request-id") || randomUUID();
+  
+    c.header("x-request-id", requestId);
+
     const reqLogger = baseLogger.child({
+      requestId,
       method: c.req.method,
       path: c.req.path,
     });
 
-  c.set('logger', reqLogger);
+    c.set("logger", reqLogger);
 
-  await next();
-});
+    reqLogger.info({ msg: "Incoming request" });
 
+    const startTime = performance.now();
+
+    try {
+      await next();
+    } finally {
+      const duration = (performance.now() - startTime).toFixed(2);
+      reqLogger.info({ msg: "Request processed", status: c.res.status, duration: `${duration}ms` });
+    }
+  }
+);
