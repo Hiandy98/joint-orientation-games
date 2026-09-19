@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import pino, {type Logger} from "pino";
 
-const baseLogger = pino({
+export const baseLogger = pino({
   transport: {
     target: "pino-pretty",
     options: {colorize: true}
