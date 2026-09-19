@@ -1,7 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import pino, {type Logger} from "pino";
 
-
 const baseLogger = pino({
   transport: {
     target: "pino-pretty",
@@ -9,13 +8,11 @@ const baseLogger = pino({
   }
 })
 
-
 type LoggerEnv = {
   Variables: {
     logger: Logger;
   }
 };
-
 
 export const loggerMiddleware = createMiddleware<LoggerEnv>(
   async (c, next) => {
