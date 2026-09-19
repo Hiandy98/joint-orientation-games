@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import type { Logger } from 'pino'
 
 import { loggerMiddleware, baseLogger } from './runtime/logger.js'
+import { config } from './runtime/config.js'
 
 type Env = {
   Variables: {
@@ -24,7 +25,7 @@ app.get('/', (c) => {
 
 serve({
   fetch: app.fetch,
-  port: 3000
+  port: config.PORT
 }, (info) => {
   baseLogger.info(`Server is running on http://localhost:${info.port}`)
 })
