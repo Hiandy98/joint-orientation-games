@@ -1,5 +1,5 @@
 import { error } from "node:console";
-import { baseLogger } from "./logger.js";
+import { baseLogger } from "../runtime/logger.js";
 
 export class TopoSort {
 
