@@ -3,14 +3,15 @@ import { Hono } from "hono"
 import { type PluginContext } from "../contracts/PluginContext.js"
 import { BasePlugin } from "../contracts/BasePlugin.js"
 import { TopoSort } from "./TopoSort.js"
+import { type HonoEnv } from "./HonoEnv.js"
 
 
 export class PluginBootstrapper {
   private loadedPlugins: BasePlugin[] = []
-  private app: Hono
+  private app: Hono<HonoEnv, any, any>
   private ctx: PluginContext
   
-  constructor(app: Hono, ctx: PluginContext) {
+  constructor(app: Hono<HonoEnv, any, any>, ctx: PluginContext) {
     this.app = app
     this.ctx = ctx
   }

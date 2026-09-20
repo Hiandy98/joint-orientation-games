@@ -4,13 +4,14 @@ import * as fs from "node:fs/promises"
 import { type PluginContext } from "../contracts/PluginContext.js"
 import { PluginScan } from "../utils/PluginScan.js"
 import { PluginBootstrapper } from "../utils/PluginBootstrapper.js";
+import { type HonoEnv } from "../utils/HonoEnv.js"
 
 export class PluginLoader {
-  private app: Hono
+  private app: Hono<HonoEnv, any, any>
   private ctx: PluginContext
   private bootstrapper!: PluginBootstrapper;
 
-  constructor(app: Hono, ctx: PluginContext) {
+  constructor(app: Hono<HonoEnv, any, any>, ctx: PluginContext) {
     this.app = app
     this.ctx = ctx
   }
