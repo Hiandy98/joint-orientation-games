@@ -52,22 +52,49 @@ async function bootstrap() {
     baseLogger.info(`Server is running on http://localhost:${info.port}`)
   });
 
+  let isShuttingDown = false;
+
   const shutdown = async (signal: string) => {
+    if (isShuttingDown) {
+      baseLogger.warn(`Signal ${signal} ignored; shutdown procedure already in progress.`)
+      return;
+    }
+    isShuttingDown = true;
+
     baseLogger.warn(`Signal ${signal} received; initiating slow-start procedure...`)
 
-    server.close()
-    await loader.unloadAll()
-    await disconnectDatabase()
-    
-    baseLogger.info('Service has been safely terminated. Goodbye')
-    process.exit(0)
+    try {
+      await server.close()
+      await loader.unloadAll()
+      await disconnectDatabase()
+      
+      baseLogger.info('Service has been safely terminated. Goodbye')
+      
+      await flushLogger(baseLogger);
+      process.exit(0)
+    } catch (err) {
+      baseLogger.error(err, "An error occurred during the shutdown process")
+      
+      await flushLogger(baseLogger);
+      process.exit(1)
+    }
   }
 
-  process.on("SIGINT", () => shutdown("SIGINT"))
-  process.on("SIGTERM", () => shutdown("SIGTERM"))
+  process.on("SIGINT", () => { shutdown("SIGINT") })
+  process.on("SIGTERM", () => { shutdown("SIGTERM") })
 }
 
 bootstrap().catch((err) => {
   baseLogger.fatal(err, "A critical, fatal error occurred during system startup!!!!!!!!")
   process.exit(1)
 })
+
+async function flushLogger(logger: any): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (logger && typeof logger.flush === 'function') {
+      logger.flush(() => resolve());
+    } else {
+      setImmediate(resolve);
+    }
+  });
+}

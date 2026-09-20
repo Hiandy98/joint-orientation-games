@@ -1,11 +1,12 @@
 import * as path from "node:path"
 
 import { BasePlugin } from "../contracts/BasePlugin.js"
+import { type PluginContext } from "../contracts/PluginContext.js";
 
 export class PluginScan {
   private classMap = new Map<string, typeof BasePlugin>();
   private depMap = new Map<string, string[]>();
-  constructor(private ctx: any) {}
+  constructor(private ctx: PluginContext) {}
 
   public async scanFolder(dir: string, folder: string): Promise<void> {
     const entryFile = path.join(dir, folder, "index.js");
@@ -21,11 +22,11 @@ export class PluginScan {
     if (!PluginClass || !(PluginClass.prototype instanceof BasePlugin)) {
       return this.ctx.log.warn(`Loader: Skip exporting invalid add-ons: ${folder}`);
     }
-    const id = PluginClass.prototype.pluginId;
+    const id = PluginClass.pluginId; 
     if (!id) return this.ctx.log.error(`Loader: Plugin undefined, pluginId: ${folder}`);
     
     this.classMap.set(id, PluginClass);
-    this.depMap.set(id, PluginClass.prototype.dependsOn || []);
+    this.depMap.set(id, PluginClass.dependsOn ?? []);
   }
 
   public getClassMap() { return this.classMap; }

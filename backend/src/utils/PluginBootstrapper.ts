@@ -30,7 +30,7 @@ export class PluginBootstrapper {
   }
 
   private async bootPlugin(id: string, PluginClass: typeof BasePlugin): Promise<void> {
-    const name = PluginClass.prototype.pluginName || id;
+    const name = PluginClass.pluginName || id;
     try {
       this.ctx.log.info(`Loader: Initializing plugin: ${name} (${id})`);
       const instance = new (PluginClass as any)(this.ctx) as BasePlugin;
@@ -53,12 +53,13 @@ export class PluginBootstrapper {
     await Promise.all(tasks);
   }
 
-  private async invokeOnReady(plugin: any): Promise<void> {
-    if (typeof plugin.onReady !== "function") return;
+  private async invokeOnReady(plugin: BasePlugin): Promise<void> {
     try {
-      await plugin.onReady();
+      await plugin.ready();
     } catch (err) {
-      this.ctx.log.error(err, `Loader: Failed to execute onReady for plugin [${plugin.pluginId}]`);
+      const PluginClass = plugin.constructor as typeof BasePlugin;
+      const id = PluginClass.pluginId || "unknown";
+      this.ctx.log.error(err, `Loader: Failed to execute onReady for plugin [${id}]`);
     }
   }
 
@@ -77,7 +78,8 @@ export class PluginBootstrapper {
     try {
       await plugin.destroy();
     } catch (err) {
-      const id = plugin.pluginId || "unknown";
+      const PluginClass = plugin.constructor as typeof BasePlugin;
+      const id = PluginClass.pluginId || "unknown";
       this.ctx.log.error(err, `Loader: Failure to destroy the plugin: [${id}]`);
     }
   }
