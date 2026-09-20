@@ -35,6 +35,10 @@ export abstract class BasePlugin {
     this.autoCleanupFns = []
   }
   
+  public async ready(): Promise<void> {
+    await this.onReady()
+  }
+  
   protected trackCleanup(cleanupFn: () => void | Promise<void>) {
     this.autoCleanupFns.push(cleanupFn);
   }
