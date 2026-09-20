@@ -1,11 +1,12 @@
 import * as path from "node:path"
 
 import { BasePlugin } from "../contracts/BasePlugin.js"
+import { type PluginContext } from "../contracts/PluginContext.js";
 
 export class PluginScan {
   private classMap = new Map<string, typeof BasePlugin>();
   private depMap = new Map<string, string[]>();
-  constructor(private ctx: any) {}
+  constructor(private ctx: PluginContext) {}
 
   public async scanFolder(dir: string, folder: string): Promise<void> {
     const entryFile = path.join(dir, folder, "index.js");
