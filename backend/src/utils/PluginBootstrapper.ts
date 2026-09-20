@@ -2,7 +2,7 @@ import { Hono } from "hono"
 
 import { type PluginContext } from "../contracts/PluginContext.js"
 import { BasePlugin } from "../contracts/BasePlugin.js"
-import { TopoSort } from "../utils/TopoSort.js"
+import { TopoSort } from "./TopoSort.js"
 
 
 export class PluginBootstrapper {
