@@ -27,7 +27,7 @@ export const connectDatabase = async (): Promise<void> => {
     await pool.query('SELECT 1');
     baseLogger.info("Asynchronous database connection pool health check passed");
   } catch (error) {
-    baseLogger.fatal({ error }, "Database connection pool initialization failed; the system is about to shut down");
+    baseLogger.fatal({ err: error }, "Database connection pool initialization failed; the system is about to shut down");
     process.exit(1);
   }
 }
