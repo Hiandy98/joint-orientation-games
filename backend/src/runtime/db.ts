@@ -31,3 +31,9 @@ export const connectDatabase = async (): Promise<void> => {
     process.exit(1);
   }
 }
+
+export const disconnectDatabase = async (): Promise<void> => {
+  baseLogger.info("Closing asynchronous Drizzle database connection pool...");
+  await pool.end();
+  baseLogger.info("The database connection pool has been safely shut down");
+}
