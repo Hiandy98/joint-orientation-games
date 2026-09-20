@@ -3,8 +3,8 @@ import type { PluginContext } from './PluginContext.js'
 
 export abstract class BasePlugin {
 
-  public abstract readonly pluginId: string
-  public abstract readonly pluginName: string
+  public static readonly pluginId: string = ''
+  public static readonly pluginName: string = ''
   
   public readonly dependsOn: string[] = []
 

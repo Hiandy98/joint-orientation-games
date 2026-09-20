@@ -21,7 +21,7 @@ export class PluginScan {
     if (!PluginClass || !(PluginClass.prototype instanceof BasePlugin)) {
       return this.ctx.log.warn(`Loader: Skip exporting invalid add-ons: ${folder}`);
     }
-    const id = PluginClass.prototype.pluginId;
+    const id = PluginClass.pluginId; 
     if (!id) return this.ctx.log.error(`Loader: Plugin undefined, pluginId: ${folder}`);
     
     this.classMap.set(id, PluginClass);
