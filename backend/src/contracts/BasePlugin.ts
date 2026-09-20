@@ -56,8 +56,8 @@ export abstract class BasePlugin {
     this.ctx.services.register(serviceName, serviceImpl)
   }
 
-  protected getService<T = any>(serviceName: string): T | undefined {
-    return this.ctx.services.get(serviceName)
+  protected getService<T = unknown>(serviceName: string): T | undefined {
+    return this.ctx.services.get<T>(serviceName)
   }
 
   protected get db() {
