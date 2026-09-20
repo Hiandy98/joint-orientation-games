@@ -52,7 +52,15 @@ async function bootstrap() {
     baseLogger.info(`Server is running on http://localhost:${info.port}`)
   });
 
+  let isShuttingDown = false;
+
   const shutdown = async (signal: string) => {
+    if (isShuttingDown) {
+      baseLogger.warn(`Signal ${signal} ignored; shutdown procedure already in progress.`)
+      return;
+    }
+    isShuttingDown = true;
+
     baseLogger.warn(`Signal ${signal} received; initiating slow-start procedure...`)
 
     await server.close()
@@ -63,8 +71,8 @@ async function bootstrap() {
     process.exit(0)
   }
 
-  process.on("SIGINT", () => shutdown("SIGINT"))
-  process.on("SIGTERM", () => shutdown("SIGTERM"))
+  process.on("SIGINT", () => { shutdown("SIGINT") })
+  process.on("SIGTERM", () => { shutdown("SIGTERM") })
 }
 
 bootstrap().catch((err) => {
