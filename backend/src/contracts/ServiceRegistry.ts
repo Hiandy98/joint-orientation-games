@@ -1,6 +1,7 @@
 import { type Logger } from "pino";
+import type { IService } from "./IService.js";
 
-export class ServiceRegistry {
+export class ServiceRegistry implements IService {
   private services = new Map<string, any>();
   private log!: Logger;
 
