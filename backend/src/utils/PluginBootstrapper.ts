@@ -60,4 +60,24 @@ export class PluginBootstrapper {
       this.ctx.log.error(err, `Loader: Failed to execute onReady for plugin [${plugin.pluginId}]`);
     }
   }
+
+  public async unloadAll(): Promise<void> {
+    this.ctx.log.info("Loader: Starting to close all loaded add-ons...");
+    const reversePlugins = [...this.loadedPlugins].reverse();
+
+    for (const plugin of reversePlugins) {
+      await this.destroyPlugin(plugin);
+    }
+    this.loadedPlugins.length = 0; 
+    this.ctx.log.info("Loader: All plugins have been safely disabled.");
+  }
+
+  private async destroyPlugin(plugin: BasePlugin): Promise<void> {
+    try {
+      await plugin.destroy();
+    } catch (err) {
+      const id = plugin.pluginId || "unknown";
+      this.ctx.log.error(err, `Loader: Failure to destroy the plugin: [${id}]`);
+    }
+  }
 }
