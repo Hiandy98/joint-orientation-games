@@ -2,7 +2,7 @@ import * as path from "node:path"
 
 import { BasePlugin } from "../contracts/BasePlugin.js"
 
-class PluginRegistry {
+class PluginScan {
   private classMap = new Map<string, typeof BasePlugin>();
   private depMap = new Map<string, string[]>();
   constructor(private ctx: any) {}
