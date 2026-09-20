@@ -1,4 +1,5 @@
 import * as path from "node:path"
+import { pathToFileURL } from "node:url"
 
 import { BasePlugin } from "../contracts/BasePlugin.js"
 import { type PluginContext } from "../contracts/PluginContext.js";
@@ -9,9 +10,9 @@ export class PluginScan {
   constructor(private ctx: PluginContext) {}
 
   public async scanFolder(dir: string, folder: string): Promise<void> {
-    const entryFile = path.join(dir, folder, "index.js");
+    const entryFile = path.resolve(dir, folder, "index.js");
     try {
-      const module = await import(entryFile);
+      const module = await import(pathToFileURL(entryFile).href);
       this.validateAndRegister(module.default, folder);
     } catch (err) {
       this.ctx.log.error(err, `Loader: Unable to import plugin file: ${entryFile}`);
