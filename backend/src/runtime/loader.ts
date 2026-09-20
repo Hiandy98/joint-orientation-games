@@ -8,6 +8,7 @@ import { PluginBootstrapper } from "../utils/PluginBootstrapper.js";
 export class PluginLoader {
   private app: Hono
   private ctx: PluginContext
+  private bootstrapper!: PluginBootstrapper;
 
   constructor(app: Hono, ctx: PluginContext) {
     this.app = app
@@ -16,12 +17,17 @@ export class PluginLoader {
 
   public async loadFromDir(dirPath: string): Promise<void> {
     const registry = new PluginScan(this.ctx);
-    const bootstrapper = new PluginBootstrapper(this.app, this.ctx);
+    this.bootstrapper = new PluginBootstrapper(this.app, this.ctx);
     
     const entries = await fs.readdir(dirPath, { withFileTypes: true }).catch(() => []);
     for (const entry of entries) {
       if (entry.isDirectory()) await registry.scanFolder(dirPath, entry.name);
     }
-    await bootstrapper.run(registry.getClassMap(), registry.getDepMap());
+    await this.bootstrapper.run(registry.getClassMap(), registry.getDepMap());
+  }
+
+  public async unloadAll(): Promise<void> {
+    if (!this.bootstrapper) return;
+    await this.bootstrapper.unloadAll();
   }
 }
