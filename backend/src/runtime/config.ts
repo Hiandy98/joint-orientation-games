@@ -10,7 +10,7 @@ const configSchema = z.object({
   DB_USERNAME: z.string().default("postgres"),
   DB_PASSWORD: z.string().default("password"),
   DB_HOST: z.string().default("127.0.0.1"),
-  DB_PATH: z.string().default(""),
+  DB_PATH: z.string().default("game_db"),
   DB_PORT: z.coerce.number().default(5432)
 })
 .refine((data) => {
