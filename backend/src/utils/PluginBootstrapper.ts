@@ -5,7 +5,7 @@ import { BasePlugin } from "../contracts/BasePlugin.js"
 import { TopoSort } from "../utils/TopoSort.js"
 
 
-class PluginBootstrapper {
+export class PluginBootstrapper {
   private loadedPlugins: BasePlugin[] = []
   private app: Hono
   private ctx: PluginContext
