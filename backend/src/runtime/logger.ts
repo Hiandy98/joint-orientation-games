@@ -44,8 +44,6 @@ export const loggerMiddleware = createMiddleware<LoggerEnv>(
 
     c.set("logger", reqLogger);
 
-    reqLogger.info({ msg: "Incoming request" });
-
     const startTime = logIncomingRequest(reqLogger);
 
     try {
