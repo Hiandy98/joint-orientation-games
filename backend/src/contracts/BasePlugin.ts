@@ -9,12 +9,9 @@ export abstract class BasePlugin {
   public readonly dependsOn: string[] = []
 
   public router = new Hono()
-  protected ctx!: PluginContext
   private autoCleanupFns: Array<() => void | Promise<void>> = []  // 防止記憶體洩漏用的(保證生命週期釋放)
   
-  constructor(ctx: PluginContext) {
-    this.ctx = ctx
-  }
+  constructor(protected ctx: PluginContext) { }
 
   public async init(): Promise<void> {
     await this.onInit()
