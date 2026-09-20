@@ -48,7 +48,7 @@ export abstract class BasePlugin {
     this.autoCleanupFns.push(() => { this.ctx.bus.off(event, handler) })
   }
 
-  protected emitEvent<T extends Record<string, any>>(event: string, payload: T) {
+  protected emitEvent<T extends Record<string, any> = {}>(event: string, payload: T = {} as T) {
     this.ctx.bus.emit(event, payload)
   }
 
