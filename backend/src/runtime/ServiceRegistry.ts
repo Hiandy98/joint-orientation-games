@@ -14,7 +14,7 @@ export class ServiceRegistry implements IService {
     this.log.info(`Service: [${serviceName}], register successfully`);
   }
 
-  public get<T = any>(serviceName: string): T | undefined {
+  public get<T = unknown>(serviceName: string): T | undefined {
     return this.services.get(serviceName) as T | undefined;
   }
 }
