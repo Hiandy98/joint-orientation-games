@@ -64,5 +64,6 @@ export abstract class BasePlugin {
 
   protected async onInit(): Promise<void> {}
   protected async onDestroy(): Promise<void> {}
+  protected async onReady(): Promise<void> {}
   protected abstract setupRoutes(): void
 }
