@@ -6,7 +6,7 @@ export abstract class BasePlugin {
   public abstract readonly pluginId: string
   public abstract readonly pluginName: string
   
-  public static readonly dependsOn: string[] = []
+  public readonly dependsOn: string[] = []
 
   public router = new Hono()
   protected ctx!: PluginContext
