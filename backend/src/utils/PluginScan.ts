@@ -25,7 +25,7 @@ export class PluginScan {
     if (!id) return this.ctx.log.error(`Loader: Plugin undefined, pluginId: ${folder}`);
     
     this.classMap.set(id, PluginClass);
-    this.depMap.set(id, PluginClass.prototype.dependsOn || []);
+    this.depMap.set(id, PluginClass.dependsOn ?? []);
   }
 
   public getClassMap() { return this.classMap; }

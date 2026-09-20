@@ -6,7 +6,7 @@ export abstract class BasePlugin {
   public static readonly pluginId: string = ''
   public static readonly pluginName: string = ''
   
-  public readonly dependsOn: string[] = []
+  public static readonly dependsOn: string[] = []
 
   public router = new Hono()
   private autoCleanupFns: Array<() => void | Promise<void>> = []  // 防止記憶體洩漏用的(保證生命週期釋放)
