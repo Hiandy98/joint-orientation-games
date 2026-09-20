@@ -55,7 +55,7 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     baseLogger.warn(`Signal ${signal} received; initiating slow-start procedure...`)
 
-    server.close()
+    await server.close()
     await loader.unloadAll()
     await disconnectDatabase()
     
