@@ -10,8 +10,14 @@
     ],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "rootDir": "./src",
+    "rootDirs": ["./src", "./"], 
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "outDir": "./dist"
   },
-  "exclude": ["node_modules"]
+  "include": [
+    "src/**/*",
+    "drizzle.config.ts"
+  ]
 }

@@ -9,6 +9,7 @@ import { ServiceRegistry } from './runtime/ServiceRegistry.js'
 import { type PluginContext } from './contracts/PluginContext.js'
 import { PluginLoader } from './runtime/loader.js'
 import { type HonoEnv } from './utils/HonoEnv.js'
+import { runMigrations } from './runtime/migrate.js'
 
 const app = new Hono<HonoEnv>();
 
@@ -33,6 +34,7 @@ async function bootstrap() {
   })
 
   await connectDatabase();
+  await runMigrations();
 
   const ctx: PluginContext = {
     services: new ServiceRegistry(baseLogger),
