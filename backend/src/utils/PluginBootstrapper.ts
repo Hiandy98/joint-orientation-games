@@ -18,8 +18,14 @@ export class PluginBootstrapper {
 
   public async run(classMap: Map<string, typeof BasePlugin>, depMap: Map<string, string[]>): Promise<void> {
     const sortedIds = new TopoSort(depMap).sort();
-    await this.initializeAll(sortedIds, classMap);
-    await this.activateAllReady();
+    try {
+      await this.initializeAll(sortedIds, classMap);
+      await this.activateAllReady();
+    } catch (err) {
+      this.ctx.log.warn({ err }, "Loader: Startup failed, rolling back already-initialized plugins...");
+      await this.unloadAll();
+      throw err;
+    }
   }
 
   private async initializeAll(sortedIds: string[], classMap: Map<string, typeof BasePlugin>): Promise<void> {
