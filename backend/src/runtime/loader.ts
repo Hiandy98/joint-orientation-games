@@ -19,12 +19,18 @@ export class PluginLoader {
   public async loadFromDir(dirPath: string): Promise<void> {
     const registry = new PluginScan(this.ctx);
     this.bootstrapper = new PluginBootstrapper(this.app, this.ctx);
-    
+
     const entries = await fs.readdir(dirPath, { withFileTypes: true }).catch(() => []);
     for (const entry of entries) {
       if (entry.isDirectory()) await registry.scanFolder(dirPath, entry.name);
     }
-    await this.bootstrapper.run(registry.getClassMap(), registry.getDepMap());
+    
+    try {
+      await this.bootstrapper.run(registry.getClassMap(), registry.getDepMap());
+    } catch (err) {
+      await this.bootstrapper.unloadAll();
+      throw err;
+    }
   }
 
   public async unloadAll(): Promise<void> {
