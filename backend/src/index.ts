@@ -45,7 +45,13 @@ async function bootstrap() {
 
   const loader = new PluginLoader(app, ctx)
 
-  await loader.loadFromDir("./dist/plugins")
+  try {
+    await loader.loadFromDir("./dist/plugins")
+  } catch (err) {
+    await loader.unloadAll();
+    await disconnectDatabase();
+    throw err
+  }
 
   const server = serve({
     fetch: app.fetch,
