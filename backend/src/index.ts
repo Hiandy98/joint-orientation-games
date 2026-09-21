@@ -34,7 +34,9 @@ async function bootstrap() {
   })
 
   await connectDatabase();
-  await runMigrations();
+
+  // 先不跑 等之後有再說
+  // await runMigrations();
 
   const ctx: PluginContext = {
     services: new ServiceRegistry(baseLogger),
