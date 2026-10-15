@@ -6,15 +6,19 @@ class GroupPointImpl implements GroupPoint {
     private points: Array<number> = [0,0,0,0]
 
     updatePoint(group: number, update: number): void {
-        
+        if(!Number.isInteger(group) || group < 0 || group >= this.points.length){
+            return
+        }
+        this.points[group] += update
     }
 
     getPoint(group: number): number {
-        
+        if(!Number.isInteger(group) || group < 0 || group >= this.points.length){
+            return 0
+        }
+        return this.points[group]
     }
 }
-
-
 
 
 
