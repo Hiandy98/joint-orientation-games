@@ -1,7 +1,7 @@
 import { BasePlugin } from '../../contracts/BasePlugin.js';
 import type { PasswordChecker } from './contracts/PasswordChecker.js'
 
-type Inventory = Record<string, Record<string, number>>;
+type Inventory = Record<number, Record<number, number>>;
 
 const passwordList: Inventory = {
     0 : {
@@ -13,11 +13,20 @@ const passwordList: Inventory = {
 
 
 class PasswordCheckerImpl implements PasswordChecker {
-    getPasswordLength(area: number, level: number): number {
-        
+    getPasswordLength(area: number, level: number): number | undefined {
+        const correctPassword = passwordList[area]?.[level];
+        if (correctPassword === undefined) {
+            return undefined;
+        }
+        return correctPassword.toString().length;
     }
-    checkPassword(password: number): boolean {
-        
+    
+    checkPassword(area: number, level: number, password: number): boolean | undefined {
+        const correctPassword = passwordList[area]?.[level];
+        if (correctPassword === undefined) {
+            return undefined;
+        }
+        return correctPassword === password;
     }
 }
 
