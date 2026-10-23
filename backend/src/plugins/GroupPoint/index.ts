@@ -1,5 +1,5 @@
 import { BasePlugin } from '../../contracts/BasePlugin.js';
-import type { GroupPoint } from '../../contracts/GroupPoint.js'
+import type { GroupPoint } from './contracts/GroupPoint.js'
 
 
 class GroupPointImpl implements GroupPoint {
