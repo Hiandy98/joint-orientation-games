@@ -1,8 +1,15 @@
 import { BasePlugin } from '../../contracts/BasePlugin.js';
 import type { GroupPoint } from './contracts/GroupPoint.js'
+import type { PluginContext } from '../../contracts/PluginContext.js'
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 
 class GroupPointImpl implements GroupPoint {
+
+    constructor(
+        private readonly db: NodePgDatabase
+    ) {}
+
     private points: Array<number> = [0,0,0,0]
 
     updatePoint(group: number, update: number): void {
@@ -30,7 +37,7 @@ export default class GroupPointPlugin extends BasePlugin {
     public static override readonly dependsOn: string[] = []
 
     protected override async onInit(): Promise<void> {
-        const grouppoint = new GroupPointImpl()
+        const grouppoint = new GroupPointImpl(this.db)
 
         this.registerService(
             'grouppoint',
