@@ -5,7 +5,7 @@ import { eq, sql } from 'drizzle-orm'
 import { groupPointTable } from './schema.js'
 
 
-class GroupPointImpl implements GroupPoint {
+export class GroupPointImpl implements GroupPoint {
 
     constructor(
         private readonly db: PluginContext['db']
