@@ -2,6 +2,7 @@ import { BasePlugin } from '../../contracts/BasePlugin.js';
 import type { GroupPoint } from './contracts/GroupPoint.js'
 import type { PluginContext } from '../../contracts/PluginContext.js'
 import { eq, sql } from 'drizzle-orm'
+import { groupPointTable } from './schema.js'
 
 
 class GroupPointImpl implements GroupPoint {
@@ -13,17 +14,34 @@ class GroupPointImpl implements GroupPoint {
     private points: Array<number> = [0,0,0]
 
     async updatePoint(group: number, update: number): Promise<void> {
-        if(!Number.isInteger(group) || group < 0 || group >= this.points.length){
+        if(!Number.isInteger(group) || group < 0 || group >= 3){
             return
         }
-        this.points[group] += update
+        await this.db
+            .insert(groupPointTable)
+            .values({
+                groupId: group,
+                points: update
+            })
+            .onConflictDoUpdate({
+                target: groupPointTable.groupId,
+                set: {
+                    points: sql`${groupPointTable.points} + ${update}`
+                }
+            })
     }
 
     async getPoint(group: number): Promise<number> {
-        if(!Number.isInteger(group) || group < 0 || group >= this.points.length){
+        if(!Number.isInteger(group) || group < 0 || group >= 3){
             return 0
         }
-        return this.points[group]
+        const result = await this.db
+            .select({ points: groupPointTable.points })
+            .from(groupPointTable)
+            .where(eq(groupPointTable.groupId, group))
+            .limit(1)
+
+        return result[0]?.points ?? 0
     }
 }
 
