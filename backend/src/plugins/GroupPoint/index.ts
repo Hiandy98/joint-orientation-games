@@ -11,7 +11,6 @@ class GroupPointImpl implements GroupPoint {
         private readonly db: PluginContext['db']
     ) {}
 
-    private points: Array<number> = [0,0,0]
 
     async updatePoint(group: number, update: number): Promise<void> {
         if(!Number.isInteger(group) || group < 0 || group >= 3){
