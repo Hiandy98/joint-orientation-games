@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         printText("Finally, I've found the location of this AI, but it seems they've distributed the permissions across multiple servers.", "comment-msg")
         printText("So I've prepared this system—just enter the server ID and coordinates to connect.", "comment-msg")
         printText("Currently, I've only found server 1 at (0,0).", "comment-msg")
-        printText("Try connect 1 0 0", "comment-msg")
+        printText("Try connect 0 0", "comment-msg")
     }
 
     async function checkPassword(password) {
@@ -78,6 +78,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function checkPosition(xValue, yValue) {
+        try {
+            const response = await fetch('/api/positionchecker/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include', 
+                body: JSON.stringify({
+                    x: xValue, // 必須是數字 (number)
+                    y: yValue  // 必須是數字 (number)
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // 處理 400 (參數缺失)、401 (未登入)、404 (找不到密碼設定) 等錯誤
+                console.error(`錯誤 (${response.status}):`, data.error);
+                return;
+            }
+
+            // 成功取得回應
+            if (data.exists) {
+                printText(`Connected to server ${data.value} successfully`);
+                currentArea = data.value;
+            } else {
+                printText("Invalid coordinates. -10 points.", "sys-msg");
+            }
+
+        } catch (err) {
+            console.error('網路錯誤或請求失敗:', err);
+        }
+    }
+
+
     function connectArea() {
         switch(currentArea) {
             
@@ -119,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     printText("Usage: connect <x> <y>", "err-msg");
                 }
                 else{
-                    // 判斷邏輯
+                    checkPosition(pos_x, pos_y);
                 }
                 break;
             
