@@ -38,6 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
         printText("Try connect 1 0 0", "comment-msg")
     }
 
+    function connectArea() {
+        switch(currentArea) {
+            
+
+        }
+        
+    }
+
     function processCommand(cmd) {
         const trimmed = cmd.trim();
         const parts = trimmed.split(' ');
@@ -49,10 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (action) {
             case 'help':
                 printText("Available commands:", "sys-msg");
-                printText("  help           - Show this help list", "sys-msg");
-                printText("  clear          - Clear terminal screen", "sys-msg");
-                printText("  status         - Show current stage and score", "sys-msg");
-                printText("  connect <area> <x> <y> - Connect to coordinates", "sys-msg");
+                printText("  help              - Show this help list", "sys-msg");
+                printText("  clear             - Clear terminal screen", "sys-msg");
+                printText("  status            - Show current stage and score", "sys-msg");
+                printText("  connect <x> <y>   - Connect to coordinates", "sys-msg");
+                printText("  check <password>  - check password", "sys-msg");
                 break;
 
             case 'clear':
@@ -64,22 +73,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'connect':
-                const pos_area = parts[1];
-                const pos_x = parts[2];
-                const pos_y = parts[3];
-                if (!pos_area || !pos_x || !pos_y) {
-                    printText("Usage: connect <area> <x> <y>", "err-msg");
+                const pos_x = parts[1];
+                const pos_y = parts[2];
+                if (!pos_x || !pos_y) {
+                    printText("Usage: connect <x> <y>", "err-msg");
                 }
                 else{
                     // 判斷邏輯
                 }
                 break;
-
+            
+            case 'check':
+                const password = parts[1];
+                if(!password){
+                    printText("check <password>", "err-msg");
+                }
+                else{
+                    // 判斷邏輯
+                }
+                break;
+            
             default:
                 printText(`Command not found: ${action}. Type 'help' for options.`, "err-msg");
                 break;
         }
     }
+    
 
     if (input) {
         input.addEventListener('keydown', (e) => {
