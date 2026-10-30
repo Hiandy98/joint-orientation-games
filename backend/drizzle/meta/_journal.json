@@ -15,6 +15,13 @@
       "when": 1793341409196,
       "tag": "0001_medical_shooting_star",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793365605973,
+      "tag": "0002_bizarre_chat",
+      "breakpoints": true
     }
   ]
 }

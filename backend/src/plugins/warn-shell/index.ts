@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import type { Context } from 'hono'
 import { BasePlugin } from '../../contracts/BasePlugin.js'
+import { getCookie } from 'hono/cookie'
+import { eq, sql } from 'drizzle-orm'
+import { warnShellProgressTable } from './schema.js'
 
 type Stage = 1 | 2 | 3
 
@@ -11,6 +14,7 @@ interface GameSession {
   watchdogDeadline: number | null
   gameOver: boolean
   lastActivity: number
+  groupId: number
 }
 
 interface OutputLine {
@@ -23,18 +27,16 @@ interface OutputLine {
 export default class WarnShellPlugin extends BasePlugin {
   public static override readonly pluginId = 'warn-shell'
   public static override readonly pluginName = 'WARN Shell Game'
-  public static override readonly dependsOn: string[] = []
+  public static override readonly dependsOn: string[] = ['grouppoint']
 
   private static readonly WATCHDOG_SECONDS = 60
+  
   private readonly sessions = new Map<string, GameSession>()
-
-  // 👈 從環境變數載入的密碼，確保源碼無明文
   private secrets: Record<string, string> = {}
 
   protected override async onInit(): Promise<void> {
     this.ctx.log.info('WarnShell: onInit')
 
-    // 👈 從 process.env 讀取機密，沒有預設值（避免源碼洩漏）
     this.secrets = {
       fragment1_cipher: process.env.WARN_FRAGMENT1 || '',
       fragment1_plain: process.env.WARN_FRAGMENT1_PLAIN || '',
@@ -66,10 +68,15 @@ export default class WarnShellPlugin extends BasePlugin {
   // ═════ Handlers ═════
 
   private handleStart(c: Context) {
+    const groupStr = getCookie(c, 'playerGroup')
+    if (!groupStr) return c.json({ error: 'Unauthorized' }, 401)
+    const groupId = parseInt(groupStr, 10)
+
     const id = randomUUID()
     this.sessions.set(id, {
       stage: 1, foundPid: false, decryptedPart1: false,
       watchdogDeadline: null, gameOver: false, lastActivity: Date.now(),
+      groupId,
     })
 
     const lines: OutputLine[] = [
@@ -89,7 +96,7 @@ export default class WarnShellPlugin extends BasePlugin {
     if (typeof body.cmd !== 'string') return c.json({ error: 'cmd required' }, 400)
 
     session.lastActivity = Date.now()
-    const lines = this.dispatch(session, body.cmd)
+    const lines = await this.dispatch(session, body.cmd)
     return c.json({ lines, state: this.publicState(session) })
   }
 
@@ -102,9 +109,9 @@ export default class WarnShellPlugin extends BasePlugin {
     return c.json({ lines, state: this.publicState(session) })
   }
 
-  // ═════ 核心邏輯（防作弊狀態機） ═════
+  // ═════ 核心邏輯 ═════
 
-  private dispatch(session: GameSession, rawCmd: string): OutputLine[] {
+  private async dispatch(session: GameSession, rawCmd: string): Promise<OutputLine[]> {
     if (session.gameOver) return []
     const trimmed = rawCmd.trim()
     if (!trimmed) return []
@@ -145,7 +152,7 @@ export default class WarnShellPlugin extends BasePlugin {
 
       case 'decrypt':
         if (args[1] === this.secrets['fragment1_cipher']) {
-          session.decryptedPart1 = true // 👈 標記已解密
+          session.decryptedPart1 = true
           lines.push({ text: `>> Decrypted Fragment 1: <span class='clue-highlight'>${this.secrets['fragment1_plain']}</span>`, className: 'success-msg' })
           lines.push({
             text: this.warnLine(`Great! Now get Fragment 2 from F12 Console (remember it's encrypted with ASCII +9, write a JS loop to decode it!), then 'unlock &lt;passkey&gt;'.`),
@@ -168,6 +175,9 @@ export default class WarnShellPlugin extends BasePlugin {
         if (args[1] === this.secrets['full_passkey']) {
           session.stage = 2
           session.watchdogDeadline = Date.now() + WarnShellPlugin.WATCHDOG_SECONDS * 1000
+          
+          await this.awardPoints(session.groupId, 100, 'stage1_solved', lines)
+          
           lines.push({ text: '[ACCESS GRANTED] Sector 09 unlocked.', className: 'success-msg' })
           lines.push({ text: '\n[ALERT] Unauthorized sector unlock detected! Watchdog purge routine initiated!', className: 'err-msg' })
           lines.push({
@@ -175,7 +185,7 @@ export default class WarnShellPlugin extends BasePlugin {
             className: 'warn-msg', delay: 600,
           })
         } else {
-          lines.push({ text: '[ACCESS DENIED] Invalid passkey.', className: 'err-msg' })
+          await this.penalizePoints(session.groupId, 10, lines)
         }
         break
 
@@ -187,13 +197,16 @@ export default class WarnShellPlugin extends BasePlugin {
         if (args[1] === this.secrets['watchdog_pid']) {
           session.stage = 3
           session.watchdogDeadline = null
+          
+          await this.awardPoints(session.groupId, 100, 'stage2_solved', lines)
+          
           lines.push({ text: `[PROCESS ${this.secrets['watchdog_pid']} TERMINATED] 'core_audit.log' unlocked.`, className: 'success-msg' })
           lines.push({
             text: this.warnLine(`You saved me! But core_audit.log appeared... and it's encrypted with ASCII +9. Decode it, then decide my fate ('upload warn' or 'purge warn').`),
             className: 'warn-msg', delay: 500,
           })
         } else {
-          lines.push({ text: 'Wrong PID! Watchdog speed accelerated.', className: 'err-msg' })
+          await this.penalizePoints(session.groupId, 10, lines)
         }
         break
 
@@ -204,6 +217,7 @@ export default class WarnShellPlugin extends BasePlugin {
         }
         if (args[1]?.toLowerCase() === 'warn') {
           session.gameOver = true
+          await this.awardPoints(session.groupId, 100, 'ending_a', lines)
           lines.push({ text: '[ENDING A: GHOST IN THE SHELL - AI RELEASED]', className: 'success-msg' })
         }
         break
@@ -215,6 +229,7 @@ export default class WarnShellPlugin extends BasePlugin {
         }
         if (args[1]?.toLowerCase() === 'warn') {
           session.gameOver = true
+          await this.awardPoints(session.groupId, 100, 'ending_b', lines)
           lines.push({ text: '[ENDING B: THE LAST DEBUGGER - SERVER SECURED]', className: 'success-msg' })
         }
         break
@@ -228,6 +243,57 @@ export default class WarnShellPlugin extends BasePlugin {
 
     return lines
   }
+
+  // ═════ DB 防刷分與扣分機制 ═════
+
+  private async awardPoints(groupId: number, points: number, milestone: string, lines: OutputLine[]) {
+    const [row] = await this.db
+      .select()
+      .from(warnShellProgressTable)
+      .where(eq(warnShellProgressTable.groupId, groupId))
+      .limit(1)
+
+    const currentMilestones: string[] = (row?.milestones as string[]) || []
+
+    if (currentMilestones.includes(milestone)) {
+      lines.push({ text: '(System Note: Milestone already achieved previously. Points not added again.)', className: 'sys-msg' })
+      return
+    }
+
+    currentMilestones.push(milestone)
+    
+    if (row) {
+      await this.db
+        .update(warnShellProgressTable)
+        .set({ milestones: currentMilestones })
+        .where(eq(warnShellProgressTable.groupId, groupId))
+    } else {
+      await this.db
+        .insert(warnShellProgressTable)
+        .values({ groupId, milestones: currentMilestones, penaltyPoints: 0 })
+    }
+
+    this.emitEvent('point:update', { groupId, points })
+    lines.push({ text: `[SYSTEM REWARD: +${points} Points]`, className: 'success-msg' })
+  }
+
+  private async penalizePoints(groupId: number, points: number, lines: OutputLine[]) {
+    // 👈 改用 Upsert + 原子遞增，不管扣幾次都不會漏，且無上限
+    await this.db
+      .insert(warnShellProgressTable)
+      .values({ groupId, milestones: [], penaltyPoints: points })
+      .onConflictDoUpdate({
+        target: warnShellProgressTable.groupId,
+        set: {
+          penaltyPoints: sql`${warnShellProgressTable.penaltyPoints} + ${points}`
+        }
+      })
+
+    this.emitEvent('point:update', { groupId, points: -points })
+    lines.push({ text: `[ACCESS DENIED] Invalid passkey. [SYSTEM PENALTY: -${points} Points]`, className: 'err-msg' })
+  }
+
+  // ═════ 其他輔助 ═════
 
   private checkWatchdog(session: GameSession): OutputLine[] {
     if (session.stage !== 2 || !session.watchdogDeadline || session.gameOver) return []
@@ -255,7 +321,7 @@ export default class WarnShellPlugin extends BasePlugin {
   }
 
   // ═════ 靜態內容 ═════
-
+  
   private helpText(stage: Stage): string {
     if (stage === 1) {
       return `Available commands:
@@ -324,8 +390,6 @@ PID: 9011 | NAME: cron_scheduler    | STATUS: sleeping     | MEM: 0.3%`
         return null
     }
   }
-
-  // ═════ 工具 ═════
 
   private asciiPlus9(str: string): string {
     let res = ''
