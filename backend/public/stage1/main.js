@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 printText("  help           - Show this help list", "sys-msg");
                 printText("  clear          - Clear terminal screen", "sys-msg");
                 printText("  status         - Show current stage and score", "sys-msg");
+                printText("  connect <x> <y>- Connect to coordinates", "sys-msg");
                 break;
 
             case 'clear':
@@ -56,6 +57,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             case 'status':
                 printText(`STATUS -> Stage: ${gameState.currentArea}`, "warn-msg");
+                break;
+
+            case 'connect':
+                const pos_x = parts[1];
+                const pos_y = parts[2];
+                if (!pos_x || !pos_y) {
+                    printText("Usage: connect <x> <y>", "err-msg");
+                }
+                else{
+                    // 判斷邏輯
+                }
                 break;
 
             default:
