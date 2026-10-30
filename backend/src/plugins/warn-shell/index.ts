@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto'
-import { BasePlugin } from '../../contracts/BasePlugin.js'
 import type { Context } from 'hono'
+import { BasePlugin } from '../../contracts/BasePlugin.js'
 
 type Stage = 1 | 2 | 3
 
 interface GameSession {
   stage: Stage
   foundPid: boolean
+  decryptedPart1: boolean
   watchdogDeadline: number | null
   gameOver: boolean
   lastActivity: number
@@ -24,20 +25,32 @@ export default class WarnShellPlugin extends BasePlugin {
   public static override readonly pluginName = 'WARN Shell Game'
   public static override readonly dependsOn: string[] = []
 
-  // ═════ 秘密常數：只有後端知道 ═════
-  private static readonly FRAGMENT_1_CIPHER = 'N2V5X29mXw=='
-  private static readonly FRAGMENT_1_PLAIN = 'key_of_'
-  private static readonly FULL_PASSKEY = 'key_of_debugger_09'
-  private static readonly WATCHDOG_PID = '8842'
   private static readonly WATCHDOG_SECONDS = 60
-  private static readonly FRAGMENT_2_CONSOLE_MSG = 'Passkey Fragment 2 is: debugger_09'
-
   private readonly sessions = new Map<string, GameSession>()
 
+  // 👈 從環境變數載入的密碼，確保源碼無明文
+  private secrets: Record<string, string> = {}
+
   protected override async onInit(): Promise<void> {
+    this.ctx.log.info('WarnShell: onInit')
+
+    // 👈 從 process.env 讀取機密，沒有預設值（避免源碼洩漏）
+    this.secrets = {
+      fragment1_cipher: process.env.WARN_FRAGMENT1 || '',
+      fragment1_plain: process.env.WARN_FRAGMENT1_PLAIN || '',
+      full_passkey: process.env.WARN_PASSKEY || '',
+      watchdog_pid: process.env.WARN_WATCHDOG_PID || '',
+      fragment2_console_msg: process.env.WARN_CONSOLE_MSG || '',
+    }
+
+    if (!this.secrets['full_passkey']) {
+      this.ctx.log.warn('WarnShell: 警告！環境變數未設定，遊戲將無法正常運作')
+    } else {
+      this.ctx.log.info('WarnShell: 密碼已從環境變數載入')
+    }
+
     const timer = setInterval(() => this.cleanup(), 5 * 60_000)
     this.trackCleanup(() => clearInterval(timer))
-    this.ctx.log.info('WarnShell: onInit')
   }
 
   protected override setupRoutes(): void {
@@ -52,10 +65,10 @@ export default class WarnShellPlugin extends BasePlugin {
 
   // ═════ Handlers ═════
 
-   private handleStart(c: Context) {
+  private handleStart(c: Context) {
     const id = randomUUID()
     this.sessions.set(id, {
-      stage: 1, foundPid: false,
+      stage: 1, foundPid: false, decryptedPart1: false,
       watchdogDeadline: null, gameOver: false, lastActivity: Date.now(),
     })
 
@@ -64,7 +77,7 @@ export default class WarnShellPlugin extends BasePlugin {
       { text: "Connection established. Type <span class='clue-highlight'>help</span> for available commands.\n", className: 'sys-msg' },
       { text: this.warnLine('Hello? Can you read this? My transmission is encoded with ASCII +9!'), className: 'warn-msg', delay: 700 },
       { text: this.warnLine('Check README.txt for clues, but beware of the noise. You might need to write a script to decode everything!'), className: 'warn-msg', delay: 1800 },
-      { text: this.asciiPlus9(WarnShellPlugin.FRAGMENT_2_CONSOLE_MSG), className: 'console', console: true },
+      { text: this.asciiPlus9(this.secrets['fragment2_console_msg'] || ''), className: 'console', console: true },
     ]
     return c.json({ sessionId: id, lines })
   }
@@ -89,7 +102,7 @@ export default class WarnShellPlugin extends BasePlugin {
     return c.json({ lines, state: this.publicState(session) })
   }
 
-  // ═════ 核心邏輯 ═════
+  // ═════ 核心邏輯（防作弊狀態機） ═════
 
   private dispatch(session: GameSession, rawCmd: string): OutputLine[] {
     if (session.gameOver) return []
@@ -105,7 +118,7 @@ export default class WarnShellPlugin extends BasePlugin {
 
     switch (cmd) {
       case 'help':
-        lines.push({ text: this.helpText(), className: 'sys-msg' })
+        lines.push({ text: this.helpText(session.stage), className: 'sys-msg' })
         break
 
       case 'ls':
@@ -123,7 +136,7 @@ export default class WarnShellPlugin extends BasePlugin {
         if (name === 'system.log' && !session.foundPid) {
           session.foundPid = true
           lines.push({
-            text: this.warnLine(`Found Fragment 1 in system.log: ${WarnShellPlugin.FRAGMENT_1_CIPHER}. Use 'decrypt ${WarnShellPlugin.FRAGMENT_1_CIPHER}'!`),
+            text: this.warnLine(`Found Fragment 1 in system.log: ${this.secrets['fragment1_cipher']}. Use 'decrypt ${this.secrets['fragment1_cipher']}'!`),
             className: 'warn-msg', delay: 400,
           })
         }
@@ -131,8 +144,9 @@ export default class WarnShellPlugin extends BasePlugin {
       }
 
       case 'decrypt':
-        if (args[1] === WarnShellPlugin.FRAGMENT_1_CIPHER) {
-          lines.push({ text: `>> Decrypted Fragment 1: <span class='clue-highlight'>${WarnShellPlugin.FRAGMENT_1_PLAIN}</span>`, className: 'success-msg' })
+        if (args[1] === this.secrets['fragment1_cipher']) {
+          session.decryptedPart1 = true // 👈 標記已解密
+          lines.push({ text: `>> Decrypted Fragment 1: <span class='clue-highlight'>${this.secrets['fragment1_plain']}</span>`, className: 'success-msg' })
           lines.push({
             text: this.warnLine(`Great! Now get Fragment 2 from F12 Console (remember it's encrypted with ASCII +9, write a JS loop to decode it!), then 'unlock &lt;passkey&gt;'.`),
             className: 'warn-msg', delay: 400,
@@ -143,10 +157,18 @@ export default class WarnShellPlugin extends BasePlugin {
         break
 
       case 'unlock':
-        if (args[1] === WarnShellPlugin.FULL_PASSKEY) {
-          lines.push({ text: '[ACCESS GRANTED] Sector 09 unlocked.', className: 'success-msg' })
+        if (session.stage !== 1) {
+          lines.push({ text: 'unlock: command not available in current stage.', className: 'err-msg' })
+          break
+        }
+        if (!session.decryptedPart1) {
+          lines.push({ text: '[ACCESS DENIED] You must decrypt Fragment 1 first!', className: 'err-msg' })
+          break
+        }
+        if (args[1] === this.secrets['full_passkey']) {
           session.stage = 2
           session.watchdogDeadline = Date.now() + WarnShellPlugin.WATCHDOG_SECONDS * 1000
+          lines.push({ text: '[ACCESS GRANTED] Sector 09 unlocked.', className: 'success-msg' })
           lines.push({ text: '\n[ALERT] Unauthorized sector unlock detected! Watchdog purge routine initiated!', className: 'err-msg' })
           lines.push({
             text: this.warnLine('The Watchdog is hunting me down! Find the rogue PID in process_dump.log and kill it before time runs out!'),
@@ -159,11 +181,13 @@ export default class WarnShellPlugin extends BasePlugin {
 
       case 'kill':
         if (session.stage !== 2) {
-          lines.push({ text: 'kill: no such process', className: 'err-msg' })
-        } else if (args[1] === WarnShellPlugin.WATCHDOG_PID) {
+          lines.push({ text: 'kill: no such process or command not available.', className: 'err-msg' })
+          break
+        }
+        if (args[1] === this.secrets['watchdog_pid']) {
           session.stage = 3
           session.watchdogDeadline = null
-          lines.push({ text: `[PROCESS ${WarnShellPlugin.WATCHDOG_PID} TERMINATED] 'core_audit.log' unlocked.`, className: 'success-msg' })
+          lines.push({ text: `[PROCESS ${this.secrets['watchdog_pid']} TERMINATED] 'core_audit.log' unlocked.`, className: 'success-msg' })
           lines.push({
             text: this.warnLine(`You saved me! But core_audit.log appeared... and it's encrypted with ASCII +9. Decode it, then decide my fate ('upload warn' or 'purge warn').`),
             className: 'warn-msg', delay: 500,
@@ -174,21 +198,29 @@ export default class WarnShellPlugin extends BasePlugin {
         break
 
       case 'upload':
-        if (session.stage === 3 && args[1]?.toLowerCase() === 'warn') {
+        if (session.stage !== 3) {
+          lines.push({ text: 'upload: command not available.', className: 'err-msg' })
+          break
+        }
+        if (args[1]?.toLowerCase() === 'warn') {
           session.gameOver = true
           lines.push({ text: '[ENDING A: GHOST IN THE SHELL - AI RELEASED]', className: 'success-msg' })
         }
         break
 
       case 'purge':
-        if (session.stage === 3 && args[1]?.toLowerCase() === 'warn') {
+        if (session.stage !== 3) {
+          lines.push({ text: 'purge: command not available.', className: 'err-msg' })
+          break
+        }
+        if (args[1]?.toLowerCase() === 'warn') {
           session.gameOver = true
           lines.push({ text: '[ENDING B: THE LAST DEBUGGER - SERVER SECURED]', className: 'success-msg' })
         }
         break
 
       case 'clear':
-        break  // 前端處理
+        break
 
       default:
         lines.push({ text: `rry-sh: ${this.escapeHtml(cmd)}: command not found`, className: 'err-msg' })
@@ -222,17 +254,29 @@ export default class WarnShellPlugin extends BasePlugin {
     }
   }
 
-  // ═════ 靜態內容（全部後端） ═════
+  // ═════ 靜態內容 ═════
 
-  private helpText(): string {
+  private helpText(stage: Stage): string {
+    if (stage === 1) {
+      return `Available commands:
+  ls                - List files
+  cat &lt;filename&gt;    - View file contents
+  decrypt &lt;string&gt;  - Decode Base64 fragment
+  unlock &lt;passkey&gt;  - Unlock Sector 09
+  clear             - Clear screen`
+    }
+    if (stage === 2) {
+      return `Available commands:
+  ls                - List files
+  cat &lt;filename&gt;    - View file contents
+  kill &lt;PID&gt;        - Terminate process
+  clear             - Clear screen`
+    }
     return `Available commands:
   ls                - List files
-  cat &lt;filename&gt;    - View file contents (Hint: README.txt contains ASCII +9 data)
-  decrypt &lt;string&gt;  - Send string to [WARN]'s decoder
-  kill &lt;PID&gt;        - Terminate process
-  unlock &lt;passkey&gt;  - Unlock Sector 09
-  upload warn       - [Act 3] Release [WARN]
-  purge warn        - [Act 3] Wipe [WARN]
+  cat &lt;filename&gt;    - View file contents
+  upload warn       - Release [WARN]
+  purge warn        - Wipe [WARN]
   clear             - Clear screen`
   }
 
@@ -252,7 +296,7 @@ export default class WarnShellPlugin extends BasePlugin {
 [03:10:04] [INFO] Cognitive Filter active on thread [WARN] -&gt; Log access: BLOCKED.
 [03:11:12] [WARN] Debugger session attempting to read system.log... Denied (Returned NULL).
 [03:12:00] [AUTH] Unauthorized login attempt from 192.168.1.44
-[03:12:02] [CRITICAL] Buffer overflow at <span class="clue-highlight">ADDR:0x9F</span> -&gt; Key_Fragment_1: <span class="clue-highlight">${WarnShellPlugin.FRAGMENT_1_CIPHER}</span>
+[03:12:02] [CRITICAL] Buffer overflow at <span class="clue-highlight">ADDR:0x9F</span> -&gt; Key_Fragment_1: <span class="clue-highlight">${this.secrets['fragment1_cipher']}</span>
 [03:12:09] [ERROR] Automated cleanup failed.`
       case 'auth.log':
         return `[03:00:00] SSH session opened.
@@ -269,7 +313,7 @@ export default class WarnShellPlugin extends BasePlugin {
         if (session.stage < 2) return null
         return `PID: 1024 | NAME: systemd_daemon   | STATUS: sleeping     | MEM: 0.4%
 PID: 2048 | NAME: watchdog_decoy1   | STATUS: running      | MEM: 1.2%
-PID: ${WarnShellPlugin.WATCHDOG_PID} | NAME: kworker_cleaner   | STATUS: ACTIVE_PURGE | MEM: 96.4% | TARGET: [WARN]
+PID: ${this.secrets['watchdog_pid']} | NAME: kworker_cleaner   | STATUS: ACTIVE_PURGE | MEM: 96.4% | TARGET: [WARN]
 PID: 9011 | NAME: cron_scheduler    | STATUS: sleeping     | MEM: 0.3%`
       case 'core_audit.log':
         if (session.stage < 3) return null
