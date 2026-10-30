@@ -38,6 +38,46 @@ document.addEventListener('DOMContentLoaded', () => {
         printText("Try connect 1 0 0", "comment-msg")
     }
 
+    async function checkPassword(password) {
+        try {
+            const response = await fetch('/api/passwordchecker/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include', 
+                body: JSON.stringify({
+                    stage: 1,   // 數字型別
+                    area: currentArea,     // 數字型別
+                    password: password // 字串型別
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // 處理 400 (參數缺失)、401 (未登入)、404 (找不到密碼設定) 等錯誤
+                console.error(`錯誤 (${response.status}):`, data.error);
+                return;
+            }
+
+            // 成功取得回應
+            if (data.valid) {
+                console.log("驗證成功！", data.message);
+                if (data.firstTime) {
+                    printText("solve! +100 points", "sys-msg");
+                } else {
+                    printText("Previously solved. No duplicate points awarded", "sys-msg");
+                }
+            } else {
+                printText("Incorrect password. -10 points", "sys-msg");
+            }
+
+        } catch (err) {
+            console.error('網路錯誤或請求失敗:', err);
+        }
+    }
+
     function connectArea() {
         switch(currentArea) {
             
@@ -89,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     printText("check <password>", "err-msg");
                 }
                 else{
-                    // 判斷邏輯
+                    checkPassword(password)
                 }
                 break;
             
