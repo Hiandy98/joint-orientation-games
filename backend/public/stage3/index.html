@@ -10,23 +10,11 @@
     <div class="crt-overlay"></div>
     <div class="main-container">
         <div class="terminal-window" onclick="document.getElementById('cmd-input').focus()">
-            <div class="status-bar">
-                <span>HOST: GHOST_SHELL // STAGE 3</span>
-                <span class="warn-status">NODE-B: CONNECTED</span>
-            </div>
             <div id="terminal-output"></div>
             <div class="input-line">
-                <span class="prompt" id="prompt-text">operator@ghost-shell:/SHARED_TOOLSET$</span>
+                <span class="prompt" id="prompt-text">operator@ghost-shell:/$</span>
                 <input type="text" id="cmd-input" autocomplete="off" autofocus spellcheck="false" />
             </div>
-        </div>
-
-        <div class="toolset-panel">
-            <div class="status-bar">
-                <span id="dir-display">/SHARED_TOOLSET</span>
-            </div>
-            <ul id="file-list" class="file-list"></ul>
-            <div class="toolset-hint">>> 支援指令：<br>ls [-a], cd, mv, cat, unlock, download</div>
         </div>
     </div>
     <script src="main.js"></script>

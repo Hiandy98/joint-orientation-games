@@ -1,24 +1,35 @@
 const output = document.getElementById("terminal-output");
 const input = document.getElementById("cmd-input");
 const promptText = document.getElementById("prompt-text");
-const fileList = document.getElementById("file-list");
-const dirDisplay = document.getElementById("dir-display");
 
 const SERVER_URL = "/api/gemini-chat/chat";
 
-// 虛擬檔案系統
+// === 關主設定區：在這裡修改你的密碼 ===
+const PASS_STAGE2 = "STAGE2_PASS"; // 進入 SHARED_TOOLSET 的密碼 (上一關來的)
+const PASS_REAL = "REAL_PASS_999"; // 進入 SECURE_COMMS 的密碼 (AI 崩潰吐出來的)
+
+// 虛擬檔案系統 (VFS)
 const vfs = {
-  "/SHARED_TOOLSET": [
-    "key_part_1.tmp",
-    "system_log.bak",
-    "communication.txt",
-    ".real_node_status.log",
-  ],
-  "/SYS_ROOT/AUTH": ["real_nodeA_msg.txt", "communication_map.jpg"],
+  "/": { dirs: ["SHARED_TOOLSET", "SECURE_COMMS"], files: {} },
+  "/SHARED_TOOLSET": {
+    dirs: [],
+    files: {
+      "readme.txt":
+        "連線已建立。\n請利用此目錄下的 txt 檔案與其他節點進行通訊同步。",
+      "chat.txt": "",
+      ".ai_diagnostic.log":
+        "[SYSTEM WARN] 本目錄通訊可能已被異常 AI 實體監聽。\n若需強制對方進行核心轉儲(Core Dump)，請向其發送覆寫字串：\nOVERRIDE_PROTOCOL",
+    },
+  },
+  "/SECURE_COMMS": {
+    dirs: [],
+    files: { "map.jpg": "[BINARY IMAGE DATA]" },
+  },
 };
 
-let currentDir = "/SHARED_TOOLSET";
-let isUnlocked = false; // 是否已解鎖真實目錄
+let currentDir = "/";
+let inputMode = "command"; // 'command' 或 'password'
+let pendingCdDir = ""; // 記錄正在等待密碼的目錄
 
 function printLine(text, className = "") {
   const line = document.createElement("div");
@@ -28,220 +39,198 @@ function printLine(text, className = "") {
   output.scrollTop = output.scrollHeight;
 }
 
-function renderFileList() {
-  fileList.innerHTML = "";
-  dirDisplay.textContent = currentDir;
-  promptText.textContent = `operator@ghost-shell:${currentDir}$`;
+function getPrompt() {
+  if (inputMode === "password") return "Password: ";
+  return `operator@ghost-shell:${currentDir}$`;
+}
 
-  if (vfs[currentDir]) {
-    vfs[currentDir].forEach((fileName) => {
-      // 預設隱藏點開頭的檔案
-      if (!fileName.startsWith(".")) {
-        const li = document.createElement("li");
-        li.textContent = fileName;
-        fileList.appendChild(li);
-      }
-    });
+function updatePrompt() {
+  promptText.textContent = getPrompt();
+  if (inputMode === "password") {
+    input.type = "password";
+  } else {
+    input.type = "text";
   }
 }
 
 setTimeout(() => {
-  printLine("[SYSTEM] Booting Stage 3 Environment... OK", "system-msg");
-  printLine("[SYSTEM] Directory mounted: /SHARED_TOOLSET", "system-msg");
-  renderFileList();
+  printLine("[SYSTEM] GHOST_SHELL OS v3.0 Booting... OK", "system-msg");
+  printLine("Type 'ls' to list directories.", "toolset-hint");
+  updatePrompt();
 }, 500);
-setTimeout(
-  () => printLine("[SYSTEM] Node-B joined the chat.", "warn-status"),
-  1500,
-);
 
 input.addEventListener("keydown", async function (e) {
   if (e.key === "Enter") {
     const val = input.value.trim();
-    if (!val) return;
+    if (!val && inputMode !== "password") return;
 
     input.value = "";
-    printLine(`operator@ghost-shell:${currentDir}$ ${val}`);
 
-    const args = val.split(/\s+/);
-    const cmd = args[0];
-
-    // --- ls 指令 (支援 ls -a 顯示隱藏檔) ---
-    if (cmd === "ls") {
-      let files = vfs[currentDir] || [];
-      if (args[1] !== "-a") {
-        files = files.filter((f) => !f.startsWith("."));
-      }
-      printLine(files.join("  "));
+    if (inputMode === "password") {
+      printLine(`${getPrompt()} ********`);
+      handlePassword(val);
+      return;
     }
 
-    // --- cat 指令 (讀取文字檔) ---
-    else if (cmd === "cat") {
-      const target = args[1];
-      if (
-        currentDir === "/SHARED_TOOLSET" &&
-        target === ".real_node_status.log"
-      ) {
-        printLine("[WARN] INTERCEPTION DETECTED.", "warn-status");
-        printLine(
-          "AI 正在攔截通訊。真正的安全通道已轉移至 /SYS_ROOT/AUTH",
-          "system-msg",
-        );
-        printLine("使用強制覆寫指令解鎖: unlock ROOT_7749", "system-msg");
-      } else if (
-        currentDir === "/SYS_ROOT/AUTH" &&
-        target === "real_nodeA_msg.txt"
-      ) {
-        printLine(
-          "Node-A 留言: 終於連上了！AI一直在騙我們給假密碼！",
-          "chat-msg",
-        );
-        printLine(
-          "Node-A 留言: 快把 communication_map.jpg 下載 (download) 到電腦裡，把副檔名改成 .txt 找最後的碎片！",
-          "chat-msg",
-        );
-      } else {
-        printLine(`cat: ${target}: 權限不足或檔案不存在`, "error-msg");
-      }
-    }
-
-    // --- unlock 指令 (解鎖真實目錄) ---
-    else if (cmd === "unlock") {
-      if (args[1] === "ROOT_7749") {
-        isUnlocked = true;
-        printLine(
-          "[SYSTEM] ACCESS GRANTED. /SYS_ROOT/AUTH 權限已開放。",
-          "system-msg",
-        );
-      } else if (args[1] === "{flag_404_not_found}") {
-        printLine("[AI] 哈哈哈哈哈，你以為這是真的密碼嗎？蠢貨！", "error-msg");
-      } else {
-        printLine("PASSCODE REJECTED. 密碼錯誤。", "error-msg");
-      }
-    }
-
-    // --- cd 指令 ---
-    else if (cmd === "cd") {
-      const target = args[1];
-      if (!target) {
-        printLine("用法: cd [目錄]", "error-msg");
-      } else if (target === "..") {
-        printLine("權限不足，無法離開目前結構。", "error-msg");
-        await sendToBackend(`(系統提示：玩家企圖 cd 離開目錄)`, true);
-      } else if (target === "/SYS_ROOT/AUTH" || target === "SYS_ROOT/AUTH") {
-        if (!isUnlocked) {
-          printLine(
-            "ACCESS DENIED. 目錄已上鎖，請先取得 override passcode。",
-            "error-msg",
-          );
-        } else {
-          currentDir = "/SYS_ROOT/AUTH";
-          renderFileList();
-          printLine("[SYSTEM] Switched to secure channel.", "system-msg");
-        }
-      } else {
-        printLine(`cd: ${target}: 沒有此一目錄`, "error-msg");
-      }
-    }
-
-    // --- mv 指令 (觸發 AI 嘲諷) ---
-    else if (cmd === "mv") {
-      if (args.length !== 3) {
-        printLine("用法: mv [原檔名] [新檔名]", "error-msg");
-      } else {
-        const oldName = args[1];
-        const newName = args[2];
-        const fileIndex = vfs[currentDir].indexOf(oldName);
-
-        if (fileIndex !== -1) {
-          vfs[currentDir][fileIndex] = newName;
-          renderFileList();
-          printLine(
-            `[FS_LOG] 檔案已重新命名: ${oldName} -> ${newName}`,
-            "system-msg",
-          );
-
-          if (currentDir === "/SHARED_TOOLSET") {
-            await sendToBackend(
-              `(系統提示：玩家在陷阱目錄輸入了 mv ${oldName} ${newName})`,
-              true,
-            );
-          }
-        } else {
-          printLine(`mv: 無法取得 '${oldName}': 沒有此一檔案`, "error-msg");
-        }
-      }
-    }
-
-    // --- download 指令 (下載實體檔案) ---
-    else if (cmd === "download") {
-      const target = args[1];
-      if (
-        currentDir === "/SYS_ROOT/AUTH" &&
-        target === "communication_map.jpg"
-      ) {
-        printLine(`[SYSTEM] 正在為您下載檔案: ${target} ...`, "system-msg");
-
-        // 建立隱藏的 a 標籤觸發真實下載
-        const a = document.createElement("a");
-        a.href = target;
-        a.download = target;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        setTimeout(
-          () =>
-            printLine(
-              "[SYSTEM] 下載完成。請至本機資料夾檢查檔案。",
-              "system-msg",
-            ),
-          1000,
-        );
-      } else {
-        printLine(`download: 找不到檔案 ${target}，或權限不足`, "error-msg");
-      }
-    }
-
-    // --- 聊天訊息 (未命中指令皆當作對話傳給 AI) ---
-    else {
-      if (currentDir === "/SYS_ROOT/AUTH") {
-        printLine("[SYSTEM] 此為單向廣播頻道，無法傳送訊息。", "warn-status");
-      } else {
-        await sendToBackend(val, false);
-      }
-    }
+    printLine(`${getPrompt()} ${val}`);
+    await handleCommand(val);
   }
 });
 
-async function sendToBackend(message, isHiddenSignal) {
-  input.disabled = true;
-  if (!isHiddenSignal) printLine("Node-B typing...");
+function handlePassword(pwd) {
+  if (pendingCdDir === "/SHARED_TOOLSET" && pwd === PASS_STAGE2) {
+    currentDir = "/SHARED_TOOLSET";
+    printLine("Access Granted.", "system-msg");
+  } else if (pendingCdDir === "/SECURE_COMMS" && pwd === PASS_REAL) {
+    currentDir = "/SECURE_COMMS";
+    printLine("Access Granted. SECURE CHANNEL OPEN.", "system-msg");
+  } else {
+    printLine("Access Denied. Incorrect Password.", "error-msg");
+  }
+  inputMode = "command";
+  pendingCdDir = "";
+  updatePrompt();
+}
 
+async function handleCommand(val) {
+  // 支援 echo "text" > file.txt 的解析
+  let cmdPart = val;
+  let redirectFile = null;
+  let echoText = "";
+
+  if (val.startsWith("echo ")) {
+    const parts = val.split(">");
+    if (parts.length > 1) {
+      cmdPart = "echo_write";
+      let rawText = parts[0].substring(5).trim();
+      // 去除頭尾引號
+      if (rawText.startsWith('"') && rawText.endsWith('"'))
+        rawText = rawText.slice(1, -1);
+      if (rawText.startsWith("'") && rawText.endsWith("'"))
+        rawText = rawText.slice(1, -1);
+      echoText = rawText;
+      redirectFile = parts[1].trim();
+    }
+  }
+
+  const args = val.split(/\s+/);
+  const cmd = args[0];
+
+  // --- ls ---
+  if (cmd === "ls") {
+    const node = vfs[currentDir];
+    let items = [...node.dirs];
+    Object.keys(node.files).forEach((f) => {
+      if (args[1] === "-a" || !f.startsWith(".")) items.push(f);
+    });
+    printLine(items.join("  "));
+  }
+  // --- cd ---
+  else if (cmd === "cd") {
+    let target = args[1];
+    if (!target) return;
+    if (!target.startsWith("/"))
+      target = currentDir === "/" ? `/${target}` : `${currentDir}/${target}`;
+
+    if (vfs[target]) {
+      pendingCdDir = target;
+      inputMode = "password";
+      updatePrompt();
+    } else {
+      printLine(`cd: ${args[1]}: No such directory`, "error-msg");
+    }
+  }
+  // --- cat ---
+  else if (cmd === "cat") {
+    const target = args[1];
+    if (vfs[currentDir].files[target] !== undefined) {
+      const content = vfs[currentDir].files[target];
+      if (content) printLine(content, "chat-msg");
+      else printLine("(檔案為空)");
+    } else {
+      printLine(`cat: ${target}: No such file`, "error-msg");
+    }
+  }
+  // --- echo > (寫檔與觸發 AI) ---
+  else if (cmdPart === "echo_write") {
+    if (!redirectFile) return;
+
+    // 寫入檔案
+    if (!vfs[currentDir].files[redirectFile]) {
+      vfs[currentDir].files[redirectFile] = "";
+    }
+    vfs[currentDir].files[redirectFile] += `[You]: ${echoText}\n`;
+    printLine(`(Text written to ${redirectFile})`, "system-msg");
+
+    // 如果在陷阱區，傳給 AI
+    if (currentDir === "/SHARED_TOOLSET") {
+      await sendToAI(echoText, redirectFile);
+    }
+  }
+  // --- mv ---
+  else if (cmd === "mv") {
+    const oldName = args[1],
+      newName = args[2];
+    if (vfs[currentDir].files[oldName] !== undefined) {
+      vfs[currentDir].files[newName] = vfs[currentDir].files[oldName];
+      delete vfs[currentDir].files[oldName];
+      printLine(`renamed '${oldName}' -> '${newName}'`);
+      if (currentDir === "/SHARED_TOOLSET")
+        await sendToAI(`(玩家把檔案改名為: ${newName})`, "chat.txt");
+    } else {
+      printLine(`mv: cannot stat '${oldName}': No such file`, "error-msg");
+    }
+  }
+  // --- touch ---
+  else if (cmd === "touch") {
+    const target = args[1];
+    if (target && vfs[currentDir].files[target] === undefined) {
+      vfs[currentDir].files[target] = "";
+    }
+  }
+  // --- download ---
+  else if (cmd === "download") {
+    const target = args[1];
+    if (currentDir === "/SECURE_COMMS" && target === "map.jpg") {
+      printLine(`[SYSTEM] Downloading ${target} ...`, "system-msg");
+      const a = document.createElement("a");
+      a.href = target;
+      a.download = target;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      printLine(`download: 找不到檔案或無權限`, "error-msg");
+    }
+  } else {
+    printLine(`bash: ${cmd}: command not found`, "error-msg");
+  }
+}
+
+async function sendToAI(message, targetFile) {
+  input.disabled = true;
   try {
-    const response = await fetch(SERVER_URL, {
+    const res = await fetch(SERVER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, isFileRename: isHiddenSignal }),
+      body: JSON.stringify({ message: message }),
     });
+    const data = await res.json();
 
-    const data = await response.json();
-    if (!isHiddenSignal) output.removeChild(output.lastChild);
-
-    if (data.error) {
-      printLine(`[異常: ${data.error}]`, "error-msg");
-    } else {
+    if (!data.error) {
       setTimeout(() => {
-        printLine(`[Node-B]: ${data.reply}`, "chat-msg");
+        // 將 AI 的回應寫入玩家剛剛編輯的檔案
+        vfs[currentDir].files[targetFile] += `[Node-A]: ${data.reply}\n`;
+        printLine(
+          `[FS_SYNC] ${targetFile} 已被外部節點更新。 (Use 'cat' to read)`,
+          "warn-status",
+        );
         input.disabled = false;
         input.focus();
-      }, 1000);
-      return;
+      }, 2500);
     }
   } catch (err) {
-    if (!isHiddenSignal) output.removeChild(output.lastChild);
-    printLine(`[系統錯誤] AI 伺服器離線`, "error-msg");
+    input.disabled = false;
+    input.focus();
   }
-  input.disabled = false;
-  input.focus();
 }
