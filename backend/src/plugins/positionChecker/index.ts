@@ -8,7 +8,7 @@ const positionDict = new Map<string, number>([
   ['-3,1', 3], 
   ['0,4', 4],
   ['5 -1', 5],
-  ['-3,-9', 1]
+  ['-3,-9', 6]
 ])
 
 class PositionCheckerImpl implements PositionChecker {
