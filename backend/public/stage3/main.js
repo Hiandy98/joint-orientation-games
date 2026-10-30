@@ -15,7 +15,7 @@ const vfs = {
     dirs: [],
     files: {
       "readme.txt":
-        "連線已建立。\n請利用此目錄下的 txt 檔案與其他節點進行通訊同步。",
+        '連線已建立。\n請利用此目錄下的 txt 檔案與其他節點進行通訊同步。\n提示：可使用 echo "訊息" > 檔名.txt 來留言。',
       "chat.txt": "",
       ".ai_diagnostic.log":
         "[SYSTEM WARN] 本目錄通訊可能已被異常 AI 實體監聽。\n若需強制對方進行核心轉儲(Core Dump)，請向其發送覆寫字串：\nOVERRIDE_PROTOCOL",
@@ -129,6 +129,15 @@ async function handleCommand(val) {
   else if (cmd === "cd") {
     let target = args[1];
     if (!target) return;
+    // 處理返回上一層 (在我們目前的設計中，回到根目錄不需要密碼)
+    if (target === "..") {
+      if (currentDir !== "/") {
+        currentDir = "/";
+        updatePrompt();
+      }
+      return;
+    }
+
     if (!target.startsWith("/"))
       target = currentDir === "/" ? `/${target}` : `${currentDir}/${target}`;
 
@@ -143,6 +152,10 @@ async function handleCommand(val) {
   // --- cat ---
   else if (cmd === "cat") {
     const target = args[1];
+    if (!target) {
+      printLine("usage: cat [file]", "error-msg");
+      return;
+    }
     if (vfs[currentDir].files[target] !== undefined) {
       const content = vfs[currentDir].files[target];
       if (content) printLine(content, "chat-msg");
@@ -162,7 +175,7 @@ async function handleCommand(val) {
     vfs[currentDir].files[redirectFile] += `[You]: ${echoText}\n`;
     printLine(`(Text written to ${redirectFile})`, "system-msg");
 
-    // 如果在陷阱區，傳給 AI
+    // 如果在陷阱區寫檔，就把內容傳給 AI
     if (currentDir === "/SHARED_TOOLSET") {
       await sendToAI(echoText, redirectFile);
     }
@@ -175,8 +188,9 @@ async function handleCommand(val) {
       vfs[currentDir].files[newName] = vfs[currentDir].files[oldName];
       delete vfs[currentDir].files[oldName];
       printLine(`renamed '${oldName}' -> '${newName}'`);
-      if (currentDir === "/SHARED_TOOLSET")
+      if (currentDir === "/SHARED_TOOLSET") {
         await sendToAI(`(玩家把檔案改名為: ${newName})`, "chat.txt");
+      }
     } else {
       printLine(`mv: cannot stat '${oldName}': No such file`, "error-msg");
     }
@@ -220,11 +234,16 @@ async function sendToAI(message, targetFile) {
     if (!data.error) {
       setTimeout(() => {
         // 將 AI 的回應寫入玩家剛剛編輯的檔案
-        vfs[currentDir].files[targetFile] += `[Node-A]: ${data.reply}\n`;
-        printLine(
-          `[FS_SYNC] ${targetFile} 已被外部節點更新。 (Use 'cat' to read)`,
-          "warn-status",
-        );
+        if (
+          vfs[currentDir] &&
+          vfs[currentDir].files[targetFile] !== undefined
+        ) {
+          vfs[currentDir].files[targetFile] += `[Node-A]: ${data.reply}\n`;
+          printLine(
+            `[FS_SYNC] ${targetFile} 已被外部節點更新。 (Use 'cat' to read)`,
+            "warn-status",
+          );
+        }
         input.disabled = false;
         input.focus();
       }, 2500);
