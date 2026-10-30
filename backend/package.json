@@ -2,9 +2,9 @@
   "name": "backend",
   "type": "module",
   "scripts": {
-    "dev": "tsc-watch --onSuccess \"node --watch --env-file=.env dist/src/index.js\"",
-    "build": "tsc",
-    "start": "node --env-file=.env dist/src/index.js",
+    "dev": "tsc-watch -p tsconfig.build.json --onSuccess \"node --watch --env-file=.env dist/index.js\"",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --env-file=.env dist/index.js",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
