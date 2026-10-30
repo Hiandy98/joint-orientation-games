@@ -1,3 +1,3 @@
 export interface PasswordChecker {
-    checkPassword(area: number, level: number, password: number): boolean | undefined
+    checkPassword(stage: number, area: number, password: number): boolean | undefined
 }
