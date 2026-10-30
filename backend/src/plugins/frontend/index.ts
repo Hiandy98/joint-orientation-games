@@ -11,20 +11,34 @@ export default class FrontendPlugin extends BasePlugin {
   }
 
   protected override setupRoutes(): void {
-    // ① 根目錄 → 選關卡頁（或直接導到 stage1）
+    // 根目錄
     this.router.get('/', (c) => c.redirect('/api/frontend/stage1/'))
 
-    // ② 每個 stage 的 index.html
-    //    ⚠️ 明確指定，因為 Hono serveStatic 不一定自動找 index.html
+    // 自動補斜線
+    this.router.get('/stage1', (c) => c.redirect('/api/frontend/stage1/'))
+    this.router.get('/stage2', (c) => c.redirect('/api/frontend/stage2/'))
+    this.router.get('/stage3', (c) => c.redirect('/api/frontend/stage3/'))
+
+    // 目錄首頁 (直接用 path 指定實體位置)
     this.router.get('/stage1/', serveStatic({ path: './public/stage1/index.html' }))
     this.router.get('/stage2/', serveStatic({ path: './public/stage2/index.html' }))
     this.router.get('/stage3/', serveStatic({ path: './public/stage3/index.html' }))
 
-    // ③ 每個 stage 底下的所有靜態檔（js / css / 圖片…）
-    //    請求 /stage1/style.css → ./public/stage1/style.css
-    this.router.use('/stage1/*', serveStatic({ root: './public' }))
-    this.router.use('/stage2/*', serveStatic({ root: './public' }))
-    this.router.use('/stage3/*', serveStatic({ root: './public' }))
+    // 處理資料夾下的靜態資源
+    this.router.get('/stage1/*', serveStatic({ 
+      root: './public', 
+      rewriteRequestPath: (path) => path.replace('/api/frontend', '') 
+    }))
+    
+    this.router.get('/stage2/*', serveStatic({ 
+      root: './public', 
+      rewriteRequestPath: (path) => path.replace('/api/frontend', '') 
+    }))
+    
+    this.router.get('/stage3/*', serveStatic({ 
+      root: './public', 
+      rewriteRequestPath: (path) => path.replace('/api/frontend', '') 
+    }))
   }
 
   protected override async onReady(): Promise<void> {

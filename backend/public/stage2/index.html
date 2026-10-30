@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RRY-09 // shell</title>
+    <link rel="stylesheet" href="/api/frontend/stage2/style.css">
+</head>
+
+<body>
+    <div class="crt-overlay"></div>
+
+    <div class="terminal-window" onclick="document.getElementById('cmd-input').focus()">
+        <div class="status-bar">
+            <span>HOST: RRY-09 // shell</span>
+            <span class="warn-status">CIPHER: ENCRYPTED [ASCII +9]</span>
+            <span id="watchdog-status">WATCHDOG: STANDBY</span>
+        </div>
+
+        <div id="terminal-output"></div>
+
+        <div class="input-line">
+            <span class="prompt" id="prompt-text">operator@rry-09:~$</span>
+            <input type="text" id="cmd-input" autocomplete="off" autofocus spellcheck="false" />
+        </div>
+    </div>
+
+    <script src="/api/frontend/stage2/main.js"></script>
+</body>
+
+</html>
