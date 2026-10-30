@@ -1,4 +1,5 @@
 import { BasePlugin } from '../../contracts/BasePlugin.js'
+import { cors } from 'hono/cors'
 
 interface ChatPart {
   text: string

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHOST_SHELL // Stage 3</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="crt-overlay"></div>
+    <div class="main-container">
+        <!-- 左側終端機 -->
+        <div class="terminal-window" onclick="document.getElementById('cmd-input').focus()">
+            <div class="status-bar">
+                <span>HOST: GHOST_SHELL // STAGE 3</span>
+                <span class="warn-status">NODE-B: CONNECTED</span>
+            </div>
+            <div id="terminal-output"></div>
+            <div class="input-line">
+                <span class="prompt" id="prompt-text">operator@ghost-shell:~$</span>
+                <input type="text" id="cmd-input" autocomplete="off" autofocus spellcheck="false" />
+            </div>
+        </div>
+
+        <!-- 右側工具集 -->
+        <div class="toolset-panel">
+            <div class="status-bar">
+                <span>/SHARED_TOOLSET/</span>
+            </div>
+            <ul id="file-list" class="file-list">
+                <li onclick="renameFile(this)" data-name="key_part_1.tmp">key_part_1.tmp</li>
+                <li onclick="renameFile(this)" data-name="system_log.bak">system_log.bak</li>
+                <li onclick="renameFile(this)" data-name="communication.txt">communication.txt</li>
+            </ul>
+            <div class="toolset-hint">>> 點擊檔案以重新命名 (用於隱蔽通訊)</div>
+        </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+
+</html>
