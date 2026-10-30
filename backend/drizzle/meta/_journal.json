@@ -8,6 +8,13 @@
       "when": 1793333526597,
       "tag": "0000_curvy_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793341409196,
+      "tag": "0001_medical_shooting_star",
+      "breakpoints": true
     }
   ]
 }
