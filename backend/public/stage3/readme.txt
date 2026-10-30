@@ -1,0 +1,1 @@
+communication_map.jpg
