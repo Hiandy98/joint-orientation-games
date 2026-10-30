@@ -123,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 printText("Please output the decrypted result (lowercase).", "sys-msg");
                 printText("Example: check <password>", "sys-msg");
                 break;
-                //fibonacci
             case 2:
                 printText("At the beginning of the first month, there is a pair of newborn rabbits.", "sys-msg");
                 printText("A newborn pair of rabbits matures at 2 months and produces a new pair monthly.", "sys-msg");
@@ -134,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 printText("Month 3: 1 pair of adult rabbits + 1 pair of baby rabbits (Total: 2)", "sys-msg");
                 printText("Month 4: 2 pairs of adult rabbits + 1 pair of baby rabbits (Total: 3)", "sys-msg");
                 break;
-                //55
             case 3:
                 printText("You are climbing a staircase.", "sys-msg");
                 printText("It takes 10 steps to reach the top.", "sys-msg");
@@ -145,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 printText("2. 1 step + 2 steps", "sys-msg");
                 printText("3. 2 steps + 1 step", "sys-msg");
                 break;
-                //89
             case 4:
                 printText("Here are 4 cards:", "sys-msg");
                 printText("cards 1: 5891", "sys-msg");
@@ -156,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 printText("Please check the correct card sequence", "sys-msg");
                 printText("Example: check 1234", "sys-msg");
                 break;
-                //2431
             case 5:
                 printText("Find the number of binary strings of length 10 containing no two consecutive 1s.", "sys-msg");
                 printText("For example, if length is 2, it has 3 binary strings", "sys-msg");
@@ -164,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 printText("01", "sys-msg");
                 printText("10", "sys-msg");
                 break;
-                //144
             case 6:
                 printText("Find the value of the 10^5-th term of the Fibonacci (mod 10^9+7).", "sys-msg");
                 printText("1st term is 1", "sys-msg");
@@ -172,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 printText("3rd term is 2", "sys-msg");
                 printText("4th term is 3", "sys-msg");
                 break;
-                //911435502
 
         }
     }
