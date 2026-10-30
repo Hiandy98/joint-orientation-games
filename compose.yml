@@ -1,4 +1,19 @@
 services:
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    container_name: joint-orientation-caddy
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    networks:
+      - joint-orientation-games-network
+    depends_on:
+      - backend
+
   backend:
     build:
       context: ./backend
@@ -6,8 +21,6 @@ services:
       target: development
     container_name: joint-orientation-games-backend
     restart: always
-    ports:
-      - "3000:3000"
     expose:
       - "3000"
     env_file:

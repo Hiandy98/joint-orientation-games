@@ -1,0 +1,54 @@
+{
+    order rate_limit before reverse_proxy
+}
+
+:3000 {
+    encode zstd gzip
+
+    @static path *.css *.js *.png *.jpg *.ico
+    handle @static {
+        rate_limit {
+            zone static_limit {
+                key    client_ip
+                window 1s
+                events 50
+            }
+        }
+        reverse_proxy backend:3000
+    }
+
+    @auth_api path /api/frontend/api/login /api/frontend/api/me /api/frontend/login/test
+    handle @auth_api {
+        rate_limit {
+            zone auth_limit {
+                key    client_ip
+                window 1m
+                events 10
+            }
+        }
+        reverse_proxy backend:3000
+    }
+
+    @game_api path /api/warn-shell/* /api/passwordchecker/* /api/grouppoint/*
+    handle @game_api {
+        rate_limit {
+            zone game_api_limit {
+                key    client_ip
+                window 10s
+                events 20
+            }
+        }
+        reverse_proxy backend:3000
+    }
+
+    handle {
+        rate_limit {
+            zone frontend_limit {
+                key    client_ip
+                window 1s
+                events 30
+            }
+        }
+        reverse_proxy backend:3000
+    }
+}
