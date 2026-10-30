@@ -1,24 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
     const output = document.getElementById('terminal-output');
     const input = document.getElementById('cmd-input');
-    const watchdogStatus = document.getElementById('watchdog-status');
 
-    const API_BASE = '/api/warn-shell';
 
-    const state = {
-        sessionId: null,
-        gameOver: false,
-        watchdogDeadline: 0,
+    // 前端維護的遊戲狀態
+    const gameState = {
+        currentArea: 0,
     };
 
-    function printHtml(html, className = 'sys-msg') {
-        const div = document.createElement('div');
-        div.className = className;
-        div.innerHTML = html;
-        output.appendChild(div);
-        output.scrollTop = output.scrollHeight;
-    }
-
+    // 渲染純文字訊息
     function printText(text, className = 'sys-msg') {
         const div = document.createElement('div');
         div.className = className;
@@ -27,74 +17,50 @@ document.addEventListener('DOMContentLoaded', () => {
         output.scrollTop = output.scrollHeight;
     }
 
-    function printConsolePacket(text) {
-        console.log(
-            `%c[WARN // ASCII +9 ENCRYPTED PACKET IN CONSOLE]%c\n${text}\n\n` +
-            `(Hint: Write a script in this Console to subtract 9 from each character code!)`,
-            'color: #ffaa00; font-weight: bold; background: #111; padding: 3px;',
-            'color: #ccc;'
-        );
+    // 渲染 HTML 格式訊息
+    function printHtml(html, className = 'sys-msg') {
+        const div = document.createElement('div');
+        div.className = className;
+        div.innerHTML = html;
+        output.appendChild(div);
+        output.scrollTop = output.scrollHeight;
     }
 
-    function applyLines(lines) {
-        for (const line of lines || []) {
-            const fire = () => {
-                if (line.console) printConsolePacket(line.text);
-                else printHtml(line.text, line.className || 'sys-msg');
-            };
-            if (line.delay > 0) setTimeout(fire, line.delay);
-            else fire();
-        }
+    // 初始化遊戲畫面
+    function initGame() {
+        printText("========================================", "sys-msg");
+        printText("              SYSTEM v1.0               ", "success-msg");
+        printText("========================================", "sys-msg");
+        printText("Type 'help' to see available commands.", "sys-msg");
     }
 
-    function updateWatchdogUI(watchdog) {
-        if (!watchdog?.active) {
-            if (watchdogStatus) {
-                watchdogStatus.innerText = 'WATCHDOG: STANDBY';
-                watchdogStatus.className = 'warn-status';
-            }
-            return;
-        }
-        if (watchdogStatus) {
-            watchdogStatus.innerText = `WATCHDOG: PURGING [${watchdog.secondsLeft}s]`;
-            watchdogStatus.className = watchdog.secondsLeft <= 15 ? 'danger-status' : 'warn-status';
-        }
-    }
+    function processCommand(cmd) {
+        const trimmed = cmd.trim();
+        const parts = trimmed.split(' ');
+        const action = parts[0].toLowerCase();
 
-    async function startGame() {
-        try {
-            const res = await fetch(`${API_BASE}/start`, { method: 'POST' });
-            const data = await res.json();
-            if (data.error) return printText(`[SYSTEM ERROR: ${data.error}]`, 'err-msg');
-            state.sessionId = data.sessionId;
-            state.gameOver = false;
-            applyLines(data.lines);
-        } catch (err) {
-            printText(`[SYSTEM ERROR: ${err.message}]`, 'err-msg');
-        }
-    }
+        // 回顯使用者指令
+        printText(`user@system:~$ ${cmd}`, "cmd-echo");
 
-    async function sendCommand(cmd) {
-        if (!state.sessionId || state.gameOver) return;
-        printText(`operator@rry-09:~$ ${cmd}`, 'cmd-echo');
-        try {
-            const res = await fetch(`${API_BASE}/cmd`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId: state.sessionId, cmd }),
-            });
-            const data = await res.json();
-            if (data.error) return printText(`[SYSTEM ERROR: ${data.error}]`, 'err-msg');
-            applyLines(data.lines);
-            if (data.state) {
-                state.gameOver = data.state.gameOver;
-                state.watchdogDeadline = data.state.watchdog?.active
-                    ? Date.now() + data.state.watchdog.secondsLeft * 1000
-                    : 0;
-                updateWatchdogUI(data.state.watchdog);
-            }
-        } catch (err) {
-            printText(`[SYSTEM ERROR: ${err.message}]`, 'err-msg');
+        switch (action) {
+            case 'help':
+                printText("Available commands:", "sys-msg");
+                printText("  help           - Show this help list", "sys-msg");
+                printText("  clear          - Clear terminal screen", "sys-msg");
+                printText("  status         - Show current stage and score", "sys-msg");
+                break;
+
+            case 'clear':
+                output.innerHTML = '';
+                break;
+
+            case 'status':
+                printText(`STATUS -> Stage: ${gameState.currentArea}`, "warn-msg");
+                break;
+
+            default:
+                printText(`Command not found: ${action}. Type 'help' for options.`, "err-msg");
+                break;
         }
     }
 
@@ -103,36 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key !== 'Enter') return;
             const cmd = input.value;
             input.value = '';
-            if (cmd.trim().toLowerCase() === 'clear') {
-                output.innerHTML = '';
-                return;
-            }
-            sendCommand(cmd);
+            if (!cmd.trim()) return;
+            processCommand(cmd);
         });
     }
 
-    // 每秒更新 watchdog UI，時間到請求後端確認
-    setInterval(async () => {
-        if (!state.sessionId || state.gameOver || !state.watchdogDeadline) return;
-        const secondsLeft = Math.max(0, Math.ceil((state.watchdogDeadline - Date.now()) / 1000));
-        updateWatchdogUI({ active: true, secondsLeft });
-        if (secondsLeft <= 0) {
-            try {
-                const res = await fetch(`${API_BASE}/tick`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: state.sessionId }),
-                });
-                const data = await res.json();
-                if (data.lines?.length) applyLines(data.lines);
-                if (data.state?.gameOver) {
-                    state.gameOver = true;
-                    updateWatchdogUI(data.state.watchdog);
-                }
-            } catch { /* 忽略網路錯誤 */ }
-        }
-    }, 1000);
-
-    // 啟動遊戲流程
-    startGame();
+    // 啟動初始化
+    initGame();
 });
