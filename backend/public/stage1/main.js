@@ -35,15 +35,165 @@ document.addEventListener('DOMContentLoaded', () => {
         printText("Finally, I've found the location of this AI, but it seems they've distributed the permissions across multiple servers.", "comment-msg")
         printText("So I've prepared this system—just enter the server ID and coordinates to connect.", "comment-msg")
         printText("Currently, I've only found server 1 at (0,0).", "comment-msg")
-        printText("Try connect 1 0 0", "comment-msg")
+        printText("Try connect 0 0", "comment-msg")
     }
+
+    async function checkPassword(password) {
+        try {
+            const response = await fetch('/api/passwordchecker/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include', 
+                body: JSON.stringify({
+                    stage: 1,   // 數字型別
+                    area: currentArea,     // 數字型別
+                    password: password // 字串型別
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // 處理 400 (參數缺失)、401 (未登入)、404 (找不到密碼設定) 等錯誤
+                console.error(`錯誤 (${response.status}):`, data.error);
+                return;
+            }
+
+            // 成功取得回應
+            if (data.valid) {
+                console.log("驗證成功！", data.message);
+                if (data.firstTime) {
+                    printText("solve! +100 points", "sys-msg");
+                } else {
+                    printText("Previously solved. No duplicate points awarded", "sys-msg");
+                }
+                passwordSuccess()
+            } else {
+                printText("Incorrect password. -10 points", "sys-msg");
+            }
+
+        } catch (err) {
+            console.error('網路錯誤或請求失敗:', err);
+        }
+    }
+
+    async function checkPosition(xValue, yValue) {
+        try {
+            const response = await fetch('/api/positionchecker/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include', 
+                body: JSON.stringify({
+                    x: xValue, // 必須是數字 (number)
+                    y: yValue  // 必須是數字 (number)
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // 處理 400 (參數缺失)、401 (未登入)、404 (找不到密碼設定) 等錯誤
+                console.error(`錯誤 (${response.status}):`, data.error);
+                return;
+            }
+
+            // 成功取得回應
+            if (data.exists) {
+                printText(`Connected to server ${data.value} successfully`);
+                currentArea = data.value;
+                connectArea()
+            } else {
+                printText("Invalid coordinates. -10 points.", "sys-msg");
+            }
+
+        } catch (err) {
+            console.error('網路錯誤或請求失敗:', err);
+        }
+    }
+
 
     function connectArea() {
         switch(currentArea) {
-            
+            case 1:
+                printText("..-. .. -... --- -. .- -.-. -.-. ..", "sys-msg");
+                printText("Please output the decrypted result (lowercase).", "sys-msg");
+                printText("Example: check <password>", "sys-msg");
+                break;
+            case 2:
+                printText("At the beginning of the first month, there is a pair of newborn rabbits.", "sys-msg");
+                printText("A newborn pair of rabbits matures at 2 months and produces a new pair monthly.", "sys-msg");
+                printText("Assuming none die, find the total pairs in month 10.", "sys-msg");
+                printText("For, example:", "sys-msg");
+                printText("Month 1: 1 pair of baby rabbits (Total: 1)", "sys-msg");
+                printText("Month 2: 1 pair of adult rabbits (Total: 1)", "sys-msg");
+                printText("Month 3: 1 pair of adult rabbits + 1 pair of baby rabbits (Total: 2)", "sys-msg");
+                printText("Month 4: 2 pairs of adult rabbits + 1 pair of baby rabbits (Total: 3)", "sys-msg");
+                break;
+            case 3:
+                printText("You are climbing a staircase.", "sys-msg");
+                printText("It takes 10 steps to reach the top.", "sys-msg");
+                printText("Each time you can either climb 1 or 2 steps.", "sys-msg");
+                printText("In how many distinct ways can you climb to the top?", "sys-msg");
+                printText("For example, if it takes 3 steps, there are 3 ways to climb to the top.", "sys-msg");
+                printText("1. 1 step + 1 step + 1 step", "sys-msg");
+                printText("2. 1 step + 2 steps", "sys-msg");
+                printText("3. 2 steps + 1 step", "sys-msg");
+                break;
+            case 4:
+                printText("Here are 4 cards:", "sys-msg");
+                printText("cards 1: 5891", "sys-msg");
+                printText("cards 2: 1235", "sys-msg");
+                printText("cards 3: 1345", "sys-msg");
+                printText("cards 4: 8132", "sys-msg");
+                printText("You need to rearrange them", "sys-msg");
+                printText("Please check the correct card sequence", "sys-msg");
+                printText("Example: check 1234", "sys-msg");
+                break;
+            case 5:
+                printText("Find the number of binary strings of length 10 containing no two consecutive 1s.", "sys-msg");
+                printText("For example, if length is 2, it has 3 binary strings", "sys-msg");
+                printText("00", "sys-msg");
+                printText("01", "sys-msg");
+                printText("10", "sys-msg");
+                break;
+            case 6:
+                printText("Find the value of the 10^5-th term of the Fibonacci (mod 10^9+7).", "sys-msg");
+                printText("1st term is 1", "sys-msg");
+                printText("2nd term is 1", "sys-msg");
+                printText("3rd term is 2", "sys-msg");
+                printText("4th term is 3", "sys-msg");
+                break;
 
         }
-        
+    }
+
+    function passwordSuccess() {
+        switch(currentArea) {
+            case 1:
+                printText("Next pos is (-1,-1)", "sys-msg");
+                break;
+            case 2:
+                printText("Next pos is (-3,1)", "sys-msg");
+                break;
+            case 3:
+                printText("Next pos is (0,4)", "sys-msg");
+                break;
+            case 4:
+                printText("Next pos is (5,-1)", "sys-msg");
+                break;
+            case 5:
+                printText("Next pos is &^%@+/! (Data error)", "sys-msg");
+                printText("Data error? Guess I'll have to solve the coordinates myself.");
+                break;
+            case 6:
+                printText("Finally obtained the AI!", "comment-msg");
+                printText("WARNING: UNAUTHORIZED ACCESS DETECTED", "err-msg");
+                break;
+        }
     }
 
     function processCommand(cmd) {
@@ -57,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (action) {
             case 'help':
                 printText("Available commands:", "sys-msg");
-                printText("  help              - Show this help list", "sys-msg");
+                printText("  help               - Show this help list", "sys-msg");
                 printText("  clear             - Clear terminal screen", "sys-msg");
                 printText("  status            - Show current stage and score", "sys-msg");
                 printText("  connect <x> <y>   - Connect to coordinates", "sys-msg");
@@ -79,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     printText("Usage: connect <x> <y>", "err-msg");
                 }
                 else{
-                    // 判斷邏輯
+                    checkPosition(pos_x, pos_y);
                 }
                 break;
             
@@ -89,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     printText("check <password>", "err-msg");
                 }
                 else{
-                    // 判斷邏輯
+                    checkPassword(password)
                 }
                 break;
             

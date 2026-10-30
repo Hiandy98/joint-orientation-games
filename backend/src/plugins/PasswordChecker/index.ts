@@ -7,8 +7,12 @@ type Inventory = Record<number, Record<number, string>>;
 
 const passwordList: Inventory = {
     1 : {
-        1 : "12 34",
-        2 : "56 78"
+        1 : "fibonacci",
+        2 : "55",
+        3 : "89",
+        4 : "2431",
+        5 : "144",
+        6 : "911435502",
     }
 }
 
