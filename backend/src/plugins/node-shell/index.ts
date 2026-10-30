@@ -15,7 +15,7 @@ interface ShellSession {
   inputMode: 'command' | 'password'
   pendingCdDir: string
   submittedReal: boolean
-  notifications: string[]
+  notifications: string[] // 👈 新增：通知佇列
 }
 
 interface OutputLine {
@@ -41,13 +41,15 @@ export default class NodeShellPlugin extends BasePlugin {
   protected override setupRoutes(): void {
     this.router.post('/start', (c) => this.handleStart(c))
     this.router.post('/exec', async (c) => this.handleExec(c))
+    
     this.router.post('/sync', async (c) => {
       const body = await c.req.json<{ sessionId?: string }>()
       const session = body.sessionId ? this.sessions.get(body.sessionId) : null
       if (!session) return c.json({ error: 'Session expired' }, 404)
 
+      // 把通知拿出來，並清空陣列（確保不會重複發送）
       const msgs = [...session.notifications]
-      session.notifications = [] // 拿完就清空
+      session.notifications = [] 
       return c.json({ notifications: msgs })
     })
   }
@@ -88,7 +90,7 @@ export default class NodeShellPlugin extends BasePlugin {
       inputMode: 'command',
       pendingCdDir: '',
       submittedReal: false,
-      notifications: []
+      notifications: [] // 👈 初始化通知陣列
     })
 
     const lines: OutputLine[] = [
@@ -110,6 +112,9 @@ export default class NodeShellPlugin extends BasePlugin {
 
     // 處理密碼輸入模式
     if (session.inputMode === 'password') {
+      // 👈 註解掉：避免前端與後端重複印出 Password
+      // lines.push({ text: `Password: ********` })
+      
       await this.handlePassword(session, val, lines)
       return c.json({
         lines,
@@ -140,9 +145,7 @@ export default class NodeShellPlugin extends BasePlugin {
       lines.push({ text: '[CRITICAL] 偵測到惡意 payload！本機權限已被 AI 奪取！', className: 'error-msg' })
       lines.push({ text: '[CRITICAL] 內部通訊密碼已外流至 /SECURE_COMMS/final_keys.txt', className: 'error-msg' })
       
-      // 密碼外流
       session.vfs['/SECURE_COMMS'].files['final_keys.txt'] = NodeShellPlugin.PASS_REAL
-      // 扣分
       this.emitEvent('point:update', { groupId: session.groupId, points: -50 })
     } else {
       lines.push({ text: 'Access Denied. Incorrect Password.', className: 'error-msg' })
@@ -211,7 +214,6 @@ export default class NodeShellPlugin extends BasePlugin {
       if (session.currentDir === '/SECURE_COMMS' && redirectFile === 'final_keys.txt') {
         lines.push({ text: `[SYSTEM] 正在驗證金鑰...`, className: 'system-msg' })
         
-        // 呼叫後端驗證 (這裡直接比對，假設過關就是輸入正確密碼)
         if (echoText === NodeShellPlugin.PASS_REAL) {
           if (session.submittedReal) {
             lines.push({ text: `已提交過，請勿重複提交。`, className: 'warn-status' })
@@ -230,7 +232,6 @@ export default class NodeShellPlugin extends BasePlugin {
           lines.push({ text: `(Text written to ${redirectFile})`, className: 'system-msg' })
           
           if (session.currentDir === '/SHARED_TOOLSET') {
-            // 觸發 AI 回覆，這裡我們非同步呼叫 gemini-chat API
             this.triggerAIResponse(session, echoText, redirectFile)
           }
         }
@@ -240,7 +241,6 @@ export default class NodeShellPlugin extends BasePlugin {
       const target = args[1]
       if (session.currentDir === '/SECURE_COMMS' && target === `map_${session.groupId}.jpg`) {
         lines.push({ text: `[SYSTEM] Downloading ${target} ...`, className: 'system-msg' })
-        // 這裡我們回傳一個特殊指令讓前端去下載
         lines.push({ text: `__DOWNLOAD__:${target}`, className: 'hidden-download' })
       } else {
         lines.push({ text: `download: 找不到檔案或無權限`, className: 'error-msg' })
@@ -264,7 +264,7 @@ export default class NodeShellPlugin extends BasePlugin {
         setTimeout(() => {
           session.vfs['/SHARED_TOOLSET'].files[targetFile] += `[Node-A]: ${data.reply}\n`
           
-          // 👈 寫完後，推入通知佇列
+          // 👈 新增：AI 寫完後，推入通知
           session.notifications.push(`[FS_SYNC] ${targetFile} 已被外部節點更新。 (Use 'cat' to read)`)
         }, 2500)
       }
