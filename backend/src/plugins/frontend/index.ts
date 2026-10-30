@@ -20,6 +20,7 @@ export default class FrontendPlugin extends BasePlugin {
     this.router.get('/stage1', (c) => c.redirect('/api/frontend/stage1/'))
     this.router.get('/stage2', (c) => c.redirect('/api/frontend/stage2/'))
     this.router.get('/stage3', (c) => c.redirect('/api/frontend/stage3/'))
+    this.router.get('/status', (c) => c.redirect('/api/frontend/status/'))
 
     // ── 靜態頁面 ──
     this.router.get('/login/', serveStatic({ path: './public/login/index.html' }))
@@ -27,6 +28,7 @@ export default class FrontendPlugin extends BasePlugin {
     this.router.get('/stage1/', serveStatic({ path: './public/stage1/index.html' }))
     this.router.get('/stage2/', serveStatic({ path: './public/stage2/index.html' }))
     this.router.get('/stage3/', serveStatic({ path: './public/stage3/index.html' }))
+    this.router.get('/status/', serveStatic({ path: './public/status/index.html' }))
 
     // ── 靜態資源 (css, js 等) ──
     this.router.get('/login/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
@@ -34,6 +36,7 @@ export default class FrontendPlugin extends BasePlugin {
     this.router.get('/stage1/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
     this.router.get('/stage2/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
     this.router.get('/stage3/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
+    this.router.get('/status/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
 
     // ── 登入 API ──
     // POST /api/frontend/api/login
