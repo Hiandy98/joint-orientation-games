@@ -98,6 +98,8 @@
         </div>
     </div>
     <script>
+        sessionStorage.setItem('active_stage_url', window.location.pathname);
+        
         async function _syncState() {
             try {
                 const res = await fetch('/api/frontend/api/me');

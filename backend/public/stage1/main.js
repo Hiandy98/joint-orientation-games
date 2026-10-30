@@ -1,3 +1,5 @@
+sessionStorage.setItem('active_stage_url', window.location.pathname);
+
 document.addEventListener('DOMContentLoaded', () => {
     const output = document.getElementById('terminal-output');
     const input = document.getElementById('cmd-input');

@@ -96,7 +96,7 @@
             </div>
         </div>
 
-        <a href="/api/frontend/stage1/" class="action-btn">RETURN TO TERMINAL</a>
+        <button class="action-btn" onclick="returnToGame()">RETURN TO TERMINAL</button>
 
         <div class="update-note">
             Auto-syncing with central database...
@@ -105,6 +105,20 @@
 
     <script>
         let currentGroupId = null;
+
+        function returnToGame() {
+            if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
+                window.history.back();
+                return;
+            }
+            
+            const lastStageUrl = sessionStorage.getItem('active_stage_url');
+            if (lastStageUrl) {
+                window.location.href = lastStageUrl;
+            } else {
+                window.location.href = '/api/frontend/verify/';
+            }
+        }
 
         async function fetchStatus() {
             try {

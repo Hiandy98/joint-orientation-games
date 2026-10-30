@@ -1,3 +1,5 @@
+sessionStorage.setItem('active_stage_url', window.location.pathname);
+
 const output = document.getElementById("terminal-output");
 const input = document.getElementById("cmd-input");
 const promptText = document.getElementById("prompt-text");
