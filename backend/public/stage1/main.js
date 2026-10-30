@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 printText("Available commands:", "sys-msg");
                 printText("  help               - Show this help list", "sys-msg");
                 printText("  clear             - Clear terminal screen", "sys-msg");
-                printText("  status            - Show current stage and score", "sys-msg");
+                printText("  status            - Show current stage and area", "sys-msg");
                 printText("  connect <x> <y>   - Connect to coordinates", "sys-msg");
                 printText("  check <password>  - check password", "sys-msg");
                 break;
@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'status':
-                printText(`STATUS -> Stage: ${gameState.currentArea}`, "warn-msg");
+                printText(`STATUS -> Stage: 1 , Area: ${gameState.currentArea}`, "warn-msg");
                 break;
 
             case 'connect':
