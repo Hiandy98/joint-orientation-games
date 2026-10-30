@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHOST_SHELL // STATUS</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #060809;
+            color: #33ff33;
+            font-family: "Courier New", Consolas, monospace;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .status-container {
+            border: 1px solid #1f3a24;
+            padding: 40px;
+            box-shadow: 0 0 25px rgba(51, 255, 51, 0.12);
+            background-color: #0b0e11;
+            width: 500px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.2rem;
+            border-bottom: 1px dashed #2b5c34;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            color: #88cc88;
+            letter-spacing: 2px;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+        .data-label {
+            color: #88a088;
+        }
+        .data-value {
+            color: #00ff88;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+            font-size: 1.5rem;
+        }
+        .score-value {
+            font-size: 3rem;
+            color: #ffaa00;
+            text-shadow: 0 0 15px rgba(255, 170, 0, 0.6);
+        }
+        .action-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 30px;
+            background: transparent;
+            border: 1px solid #33ff33;
+            color: #33ff33;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+        .action-btn:hover {
+            background-color: rgba(51, 255, 51, 0.15);
+            box-shadow: 0 0 10px rgba(51, 255, 51, 0.3);
+        }
+        .update-note {
+            color: #556655;
+            font-size: 0.8rem;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-container">
+        <h1>/// NODE STATUS ///</h1>
+        
+        <div class="data-row">
+            <span class="data-label">IDENTIFIER:</span>
+            <span id="group-display" class="data-value">LOADING...</span>
+        </div>
+
+        <div class="data-row" style="flex-direction: column; align-items: flex-start;">
+            <span class="data-label" style="margin-bottom: 10px;">CURRENT SCORE:</span>
+            <div style="width: 100%; text-align: center;">
+                <span id="score-display" class="data-value score-value">---</span>
+            </div>
+        </div>
+
+        <a href="/api/frontend/stage1/" class="action-btn">RETURN TO TERMINAL</a>
+
+        <div class="update-note">
+            Auto-syncing with central database...
+        </div>
+    </div>
+
+    <script>
+        let currentGroupId = null;
+
+        async function fetchStatus() {
+            try {
+                // 1. 先取得當前登入身份
+                if (currentGroupId === null) {
+                    const meRes = await fetch('/api/frontend/api/me');
+                    if (meRes.status === 401) {
+                        // 如果沒登入，踢回登入頁
+                        window.location.href = '/api/frontend/login/';
+                        return;
+                    }
+                    const meData = await meRes.json();
+                    currentGroupId = meData.groupId;
+                    document.getElementById('group-display').innerText = 'GROUP ' + currentGroupId;
+                }
+
+                // 2. 取得該組別的分數
+                const scoreRes = await fetch(`/api/grouppoint/${currentGroupId}`);
+                const scoreData = await scoreRes.json();
+                
+                // 更新畫面
+                document.getElementById('score-display').innerText = scoreData.points;
+
+                // 如果分數是負的，可以變色警告（可選）
+                if (scoreData.points < 0) {
+                    document.getElementById('score-display').style.color = '#ff3333';
+                    document.getElementById('score-display').style.textShadow = '0 0 15px rgba(255, 51, 51, 0.6)';
+                }
+
+            } catch (err) {
+                console.error('Failed to fetch status', err);
+            }
+        }
+
+        // 載入時抓一次
+        fetchStatus();
+
+        // 每 5 秒自動更新一次分數
+        setInterval(fetchStatus, 5000);
+    </script>
+</body>
+</html>
