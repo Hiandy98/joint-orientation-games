@@ -5,28 +5,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RRY-09 // shell</title>
-    <link rel="stylesheet" href="/api/frontend/stage2/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+    <!-- CRT 螢幕復古特效層 -->
     <div class="crt-overlay"></div>
 
+    <!-- 終端機主視窗 -->
     <div class="terminal-window" onclick="document.getElementById('cmd-input').focus()">
+        
+        <!-- 頂部狀態列 -->
         <div class="status-bar">
-            <span>HOST: RRY-09 // shell</span>
-            <span class="warn-status">CIPHER: ENCRYPTED [ASCII +9]</span>
-            <span id="watchdog-status">WATCHDOG: STANDBY</span>
+            <span>HOST: SERVER-01</span>
+            <span class="warn-status">STATUS: ONLINE</span>
+            <span id="watchdog-status" class="warn-status">WATCHDOG: STANDBY</span>
         </div>
 
+        <!-- 指令輸出與歷史訊息顯示區 -->
         <div id="terminal-output"></div>
 
+        <!-- 底部指令輸入列 -->
         <div class="input-line">
-            <span class="prompt" id="prompt-text">operator@rry-09:~$</span>
+            <span class="prompt" id="prompt-text">user@system:~$</span>
             <input type="text" id="cmd-input" autocomplete="off" autofocus spellcheck="false" />
         </div>
     </div>
 
-    <script src="/api/frontend/stage2/main.js"></script>
+    <script src="main.js"></script>
 </body>
 
 </html>
