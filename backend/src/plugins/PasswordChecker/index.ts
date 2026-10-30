@@ -39,6 +39,25 @@ export default class PasswordCheckerPlugin extends BasePlugin {
     }
 
     protected override setupRoutes(): void {
-        
+        this.router.post('/check', async (c) => {
+            const body = await c.req.json<{ stage?: number; area?: number; password?: number }>();
+
+            // 1. 檢查必要欄位是否傳遞
+            if (body?.stage === undefined || body?.area === undefined || body?.password === undefined) {
+                return c.json({ error: 'stage, area, and password are required in request body' }, 400);
+            }
+
+            // 2. 從服務註冊表取得服務並執行驗證
+            const checker = this.getService<PasswordChecker>('passwordchecker');
+            const isValid = checker?.checkPassword(body.stage, body.area, body.password);
+
+            // 3. 檢查該 stage 與 area 是否存在密碼設定
+            if (isValid === undefined) {
+                return c.json({ error: 'Password not found for given stage and area' }, 404);
+            }
+
+            // 4. 回傳驗證結果
+            return c.json({ valid: isValid });
+        });
     }
 }
