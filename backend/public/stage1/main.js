@@ -32,6 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
         printText("              SYSTEM v1.0               ", "success-msg");
         printText("========================================", "sys-msg");
         printText("Type 'help' to see available commands.", "sys-msg");
+        printText("Finally, I've found the location of this AI, but it seems they've distributed the permissions across multiple servers.", "comment-msg")
+        printText("So I've prepared this system—just enter the server ID and coordinates to connect.", "comment-msg")
+        printText("Currently, I've only found server 1 at (0,0).", "comment-msg")
+        printText("Try connect 1 0 0", "comment-msg")
     }
 
     function processCommand(cmd) {
