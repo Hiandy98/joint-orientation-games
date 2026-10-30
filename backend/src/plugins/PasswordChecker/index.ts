@@ -13,14 +13,6 @@ const passwordList: Inventory = {
 
 
 class PasswordCheckerImpl implements PasswordChecker {
-    getPasswordLength(area: number, level: number): number | undefined {
-        const correctPassword = passwordList[area]?.[level];
-        if (correctPassword === undefined) {
-            return undefined;
-        }
-        return correctPassword.toString().length;
-    }
-    
     checkPassword(area: number, level: number, password: number): boolean | undefined {
         const correctPassword = passwordList[area]?.[level];
         if (correctPassword === undefined) {
@@ -47,6 +39,6 @@ export default class PasswordCheckerPlugin extends BasePlugin {
     }
 
     protected override setupRoutes(): void {
-        
+
     }
 }
