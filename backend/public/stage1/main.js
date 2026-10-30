@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 printText("  help           - Show this help list", "sys-msg");
                 printText("  clear          - Clear terminal screen", "sys-msg");
                 printText("  status         - Show current stage and score", "sys-msg");
-                printText("  connect <x> <y>- Connect to coordinates", "sys-msg");
+                printText("  connect <area> <x> <y> - Connect to coordinates", "sys-msg");
                 break;
 
             case 'clear':
@@ -60,10 +60,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'connect':
-                const pos_x = parts[1];
-                const pos_y = parts[2];
-                if (!pos_x || !pos_y) {
-                    printText("Usage: connect <x> <y>", "err-msg");
+                const pos_area = parts[1];
+                const pos_x = parts[2];
+                const pos_y = parts[3];
+                if (!pos_area || !pos_x || !pos_y) {
+                    printText("Usage: connect <area> <x> <y>", "err-msg");
                 }
                 else{
                     // 判斷邏輯
