@@ -14,28 +14,36 @@ export default class FrontendPlugin extends BasePlugin {
 
   protected override setupRoutes(): void {
     // ── 頁面轉址 ──
+    const S1 = 'c9e5a4b2-1f3d-4a8e-9b7c-5d2e1f0a8b3c'
+    const S2 = '7f8a2b1c-4d3e-4f5a-8b9c-1d2e3f4a5b6c'
+    const S3 = 'e1d2c3b4-a5f6-4e7d-8c9b-0a1f2e3d4c5b'
+
+    // 根目錄與登入
     this.router.get('/', (c) => c.redirect('/api/frontend/login/'))
     this.router.get('/login', (c) => c.redirect('/api/frontend/login/'))
-    this.router.get('/verify', (c) => c.redirect('/api/frontend/verify/'))
-    this.router.get('/stage1', (c) => c.redirect('/api/frontend/stage1/'))
-    this.router.get('/stage2', (c) => c.redirect('/api/frontend/stage2/'))
-    this.router.get('/stage3', (c) => c.redirect('/api/frontend/stage3/'))
-    this.router.get('/status', (c) => c.redirect('/api/frontend/status/'))
-
-    // ── 靜態頁面 ──
     this.router.get('/login/', serveStatic({ path: './public/login/index.html' }))
-    this.router.get('/verify/', serveStatic({ path: './public/verify/index.html' }))
-    this.router.get('/stage1/', serveStatic({ path: './public/stage1/index.html' }))
-    this.router.get('/stage2/', serveStatic({ path: './public/stage2/index.html' }))
-    this.router.get('/stage3/', serveStatic({ path: './public/stage3/index.html' }))
-    this.router.get('/status/', serveStatic({ path: './public/status/index.html' }))
-
-    // ── 靜態資源 (css, js 等) ──
     this.router.get('/login/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
+
+    // 隊輔驗證頁
+    this.router.get('/verify', (c) => c.redirect('/api/frontend/verify/'))
+    this.router.get('/verify/', serveStatic({ path: './public/verify/index.html' }))
     this.router.get('/verify/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
-    this.router.get('/stage1/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
-    this.router.get('/stage2/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
-    this.router.get('/stage3/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
+
+    this.router.get(`/${S1}`, (c) => c.redirect(`/api/frontend/${S1}/`))
+    this.router.get(`/${S1}/`, serveStatic({ path: './public/stage1/index.html' }))
+    this.router.get(`/${S1}/*`, serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '').replace(S1, 'stage1') }))
+
+    this.router.get(`/${S2}`, (c) => c.redirect(`/api/frontend/${S2}/`))
+    this.router.get(`/${S2}/`, serveStatic({ path: './public/stage2/index.html' }))
+    this.router.get(`/${S2}/*`, serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '').replace(S2, 'stage2') }))
+
+    this.router.get(`/${S3}`, (c) => c.redirect(`/api/frontend/${S3}/`))
+    this.router.get(`/${S3}/`, serveStatic({ path: './public/stage3/index.html' }))
+    this.router.get(`/${S3}/*`, serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '').replace(S3, 'stage3') }))
+    
+    // 狀態頁面
+    this.router.get('/status', (c) => c.redirect('/api/frontend/status/'))
+    this.router.get('/status/', serveStatic({ path: './public/status/index.html' }))
     this.router.get('/status/*', serveStatic({ root: './public', rewriteRequestPath: (path) => path.replace('/api/frontend', '') }))
 
     // ── 登入 API ──
