@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHOST_SHELL // VERIFY</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #060809;
+            color: #33ff33;
+            font-family: "Courier New", Consolas, monospace;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .verify-container {
+            border: 1px solid #1f3a24;
+            padding: 40px;
+            box-shadow: 0 0 25px rgba(51, 255, 51, 0.12);
+            background-color: #0b0e11;
+            width: 500px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.2rem;
+            border-bottom: 1px dashed #2b5c34;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            color: #88cc88;
+        }
+        .group-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+            margin: 30px 0;
+            letter-spacing: 5px;
+        }
+        .error-text {
+            font-size: 2rem;
+            color: #ff3333;
+            margin: 30px 0;
+        }
+        .action-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: transparent;
+            border: 1px solid #33ff33;
+            color: #33ff33;
+            font-family: inherit;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn:hover {
+            background-color: rgba(51, 255, 51, 0.15);
+            box-shadow: 0 0 10px rgba(51, 255, 51, 0.3);
+        }
+        .action-btn.danger {
+            border-color: #ff3333;
+            color: #ff3333;
+        }
+        .action-btn.danger:hover {
+            background-color: rgba(255, 51, 51, 0.15);
+            box-shadow: 0 0 10px rgba(255, 51, 51, 0.3);
+        }
+        .instructor-note {
+            color: #ffaa00;
+            font-size: 0.9rem;
+            margin-top: 20px;
+            border-top: 1px dashed #2b5c34;
+            padding-top: 15px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="verify-container">
+        <h1>/// IDENTITY VERIFICATION ///</h1>
+        
+        <div style="color: #88a088;">CURRENT BINDING:</div>
+        <div id="group-display" class="group-display">...</div>
+
+        <div id="error-display" class="error-text" style="display: none;">NOT LOGGED IN</div>
+
+        <div id="actions" style="display: none;">
+            <button class="action-btn" onclick="proceed()">CONFIRM & ENTER</button>
+        </div>
+
+        <div class="instructor-note">
+            >> INSTRUCTOR CHECK<br>
+            Please verify the group identifier above matches the team's assigned node before allowing entry.
+        </div>
+    </div>
+    <script>
+        async function _syncState() {
+            try {
+                const res = await fetch('/api/frontend/api/me');
+                if (res.status === 401) {
+                    window.location.href = '/api/frontend/login/';
+                    return;
+                }
+                const data = await res.json();
+                
+                document.getElementById('group-display').innerText = 'GROUP ' + data.groupId;
+                document.getElementById('actions').style.display = 'block';
+            } catch (err) {
+                document.getElementById('group-display').style.display = 'none';
+                document.getElementById('error-display').style.display = 'block';
+            }
+        }
+
+        function _nextPhase() {
+            window.location.href = '/api/frontend/stage1/';
+        }
+
+        _syncState();
+
+        (function() {
+            const _SEQ = [99, 108, 101, 97, 114];
+            let _buf = [], _t = null;
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key.length !== 1 || !/[a-zA-Z]/.test(e.key)) return;
+                
+                _buf.push(e.key.charCodeAt(0));
+                
+                if (_buf.length > _SEQ.length) _buf.shift();
+                if (_t) clearTimeout(_t);
+
+                if (_buf.join('') === _SEQ.join('')) {
+                    _flushCache();
+                    return;
+                }
+
+                _t = setTimeout(() => _buf = [], 2000);
+            });
+
+            async function _flushCache() {
+                _buf = []; 
+                
+                // 清除本地前端暫存
+                localStorage.clear();
+                
+                // 呼叫刷新顯示頁面
+                await fetch('/api/frontend/flush/cache', { method: 'POST' }).catch(() => {});
+            }
+        })();
+
+        async function proceed() {
+          window.location.href = '/api/frontend/stage1';
+        }
+    </script>
+</body>
+</html>
