@@ -15,7 +15,7 @@ interface ShellSession {
   inputMode: 'command' | 'password'
   pendingCdDir: string
   submittedReal: boolean
-  notifications: string[] // 👈 新增：通知佇列
+  notifications: string[]
 }
 
 interface OutputLine {
@@ -47,7 +47,6 @@ export default class NodeShellPlugin extends BasePlugin {
       const session = body.sessionId ? this.sessions.get(body.sessionId) : null
       if (!session) return c.json({ error: 'Session expired' }, 404)
 
-      // 把通知拿出來，並清空陣列（確保不會重複發送）
       const msgs = [...session.notifications]
       session.notifications = [] 
       return c.json({ notifications: msgs })
@@ -62,6 +61,9 @@ export default class NodeShellPlugin extends BasePlugin {
     const groupStr = getCookie(c, 'playerGroup')
     if (!groupStr) return c.json({ error: 'Unauthorized' }, 401)
     const groupId = parseInt(groupStr, 10)
+    
+    // 👈 將 groupId (0,1,2) 轉換為英文字母 (A,B,C)
+    const groupLetter = ['A', 'B', 'C'][groupId] || 'A'
 
     const id = randomUUID()
     const vfs: Record<string, VFSNode> = {
@@ -77,7 +79,7 @@ export default class NodeShellPlugin extends BasePlugin {
       '/SECURE_COMMS': {
         dirs: [],
         files: {
-          [`map_${groupId}.jpg`]: '[BINARY IMAGE DATA]',
+          [`map_${groupLetter}.jpg`]: '[BINARY IMAGE DATA]', // 👈 改為 map_A.jpg 等
           'final_keys.txt': ''
         }
       }
@@ -90,7 +92,7 @@ export default class NodeShellPlugin extends BasePlugin {
       inputMode: 'command',
       pendingCdDir: '',
       submittedReal: false,
-      notifications: [] // 👈 初始化通知陣列
+      notifications: []
     })
 
     const lines: OutputLine[] = [
@@ -110,11 +112,7 @@ export default class NodeShellPlugin extends BasePlugin {
     const val = body.val.trim()
     const lines: OutputLine[] = []
 
-    // 處理密碼輸入模式
     if (session.inputMode === 'password') {
-      // 👈 註解掉：避免前端與後端重複印出 Password
-      // lines.push({ text: `Password: ********` })
-      
       await this.handlePassword(session, val, lines)
       return c.json({
         lines,
@@ -123,7 +121,6 @@ export default class NodeShellPlugin extends BasePlugin {
       })
     }
 
-    // 一般指令模式
     await this.handleCommand(session, val, lines)
 
     return c.json({
@@ -239,7 +236,9 @@ export default class NodeShellPlugin extends BasePlugin {
     } 
     else if (cmd === 'download') {
       const target = args[1]
-      if (session.currentDir === '/SECURE_COMMS' && target === `map_${session.groupId}.jpg`) {
+      // 👈 下載時也比對轉換後的檔名 (map_A.jpg)
+      const groupLetter = ['A', 'B', 'C'][session.groupId] || 'A'
+      if (session.currentDir === '/SECURE_COMMS' && target === `map_${groupLetter}.jpg`) {
         lines.push({ text: `[SYSTEM] Downloading ${target} ...`, className: 'system-msg' })
         lines.push({ text: `__DOWNLOAD__:${target}`, className: 'hidden-download' })
       } else {
@@ -263,8 +262,6 @@ export default class NodeShellPlugin extends BasePlugin {
       if (!data.error && session.vfs['/SHARED_TOOLSET'].files[targetFile] !== undefined) {
         setTimeout(() => {
           session.vfs['/SHARED_TOOLSET'].files[targetFile] += `[Node-A]: ${data.reply}\n`
-          
-          // 👈 新增：AI 寫完後，推入通知
           session.notifications.push(`[FS_SYNC] ${targetFile} 已被外部節點更新。 (Use 'cat' to read)`)
         }, 2500)
       }

@@ -95,10 +95,49 @@ async function sendCommand(cmd) {
   }
 }
 
+const cmdHistory = [];
+let historyIndex = -1;
+
 input.addEventListener('keydown', (e) => {
+  // 處理向上鍵
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (cmdHistory.length > 0) {
+      if (historyIndex === -1) historyIndex = cmdHistory.length;
+      if (historyIndex > 0) {
+        historyIndex--;
+        input.value = cmdHistory[historyIndex];
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+    }
+    return;
+  }
+  // 處理向下鍵
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (historyIndex !== -1 && historyIndex < cmdHistory.length - 1) {
+      historyIndex++;
+      input.value = cmdHistory[historyIndex];
+      input.setSelectionRange(input.value.length, input.value.length);
+    } else {
+      historyIndex = cmdHistory.length;
+      input.value = '';
+    }
+    return;
+  }
+
   if (e.key !== 'Enter') return;
   const cmd = input.value;
   input.value = '';
+  if (!cmd.trim()) return;
+
+  // 👈 存入歷史紀錄
+  const trimmedCmd = cmd.trim();
+  if (cmdHistory.length === 0 || cmdHistory[cmdHistory.length - 1] !== trimmedCmd) {
+    cmdHistory.push(trimmedCmd);
+  }
+  historyIndex = cmdHistory.length;
+
   if (cmd.trim().toLowerCase() === 'clear') {
     output.innerHTML = '';
     return;

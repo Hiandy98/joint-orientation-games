@@ -79,7 +79,38 @@ function startSyncPolling() {
   }, 1500); // 每 1.5 秒檢查一次
 }
 
+const cmdHistory = [];
+let historyIndex = -1;
+
 input.addEventListener("keydown", async function (e) {
+  // 只有在一般指令模式下，才啟用歷史紀錄功能
+  if (inputMode === "command") {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (cmdHistory.length > 0) {
+        if (historyIndex === -1) historyIndex = cmdHistory.length;
+        if (historyIndex > 0) {
+          historyIndex--;
+          input.value = cmdHistory[historyIndex];
+          input.setSelectionRange(input.value.length, input.value.length);
+        }
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (historyIndex !== -1 && historyIndex < cmdHistory.length - 1) {
+        historyIndex++;
+        input.value = cmdHistory[historyIndex];
+        input.setSelectionRange(input.value.length, input.value.length);
+      } else {
+        historyIndex = cmdHistory.length;
+        input.value = '';
+      }
+      return;
+    }
+  }
+
   if (e.key === "Enter") {
     const val = input.value.trim();
     if (!val && inputMode !== "password") return;
@@ -90,6 +121,12 @@ input.addEventListener("keydown", async function (e) {
       printLine(`Password: ********`);
     } else {
       printLine(`operator@node-${groupId}:~${currentDir}$ ${val}`);
+      
+      // 👈 存入歷史紀錄 (只在指令模式下)
+      if (cmdHistory.length === 0 || cmdHistory[cmdHistory.length - 1] !== val) {
+        cmdHistory.push(val);
+      }
+      historyIndex = cmdHistory.length;
     }
 
     input.disabled = true;
