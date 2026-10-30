@@ -1,19 +1,19 @@
 import { BasePlugin } from '../../contracts/BasePlugin.js';
 import type { PasswordChecker } from './contracts/PasswordChecker.js'
 
-type Inventory = Record<number, Record<number, number>>;
+type Inventory = Record<number, Record<number, string>>;
 
 const passwordList: Inventory = {
-    0 : {
-        0 : 1234,
-        1 : 5678
+    1 : {
+        1 : "1234",
+        2 : "5678"
     }
 }
 
 
 
 class PasswordCheckerImpl implements PasswordChecker {
-    checkPassword(stage: number, area: number, password: number): boolean | undefined {
+    checkPassword(stage: number, area: number, password: string): boolean | undefined {
         const correctPassword = passwordList[stage]?.[area];
         if (correctPassword === undefined) {
             return undefined;
@@ -40,7 +40,7 @@ export default class PasswordCheckerPlugin extends BasePlugin {
 
     protected override setupRoutes(): void {
         this.router.post('/check', async (c) => {
-            const body = await c.req.json<{ stage?: number; area?: number; password?: number }>();
+            const body = await c.req.json<{ stage?: number; area?: number; password?: string }>();
 
             // 1. 檢查必要欄位是否傳遞
             if (body?.stage === undefined || body?.area === undefined || body?.password === undefined) {
