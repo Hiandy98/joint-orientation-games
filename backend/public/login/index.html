@@ -80,20 +80,33 @@
 
     <script>
         // 檢查是否已經登入過
-        window.onload = () => {
-            const savedGroup = localStorage.getItem('playerGroup');
-            if (savedGroup !== null) {
-                // 如果已經選過，直接跳去 Stage 1
-                window.location.href = '/api/frontend/stage1/';
-            }
+        window.onload = async () => {
+            try {
+                const res = await fetch('/api/frontend/api/me');
+                if (res.ok) {
+                    // 已經有 Cookie，直接去檢查頁
+                    window.location.href = '/api/frontend/verify/';
+                }
+            } catch (e) {}
         };
 
-        function selectGroup(groupId) {
-            // 存入 localStorage
-            localStorage.setItem('playerGroup', groupId);
-            
-            // 跳轉至 Stage 1
-            window.location.href = '/api/frontend/stage1/';
+        async function selectGroup(groupId) {
+            try {
+                const res = await fetch('/api/frontend/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupId })
+                });
+                
+                if (res.ok) {
+                    // 登入成功，後端已發 Cookie，前往檢查頁
+                    window.location.href = '/api/frontend/verify/';
+                } else {
+                    alert('登入失敗');
+                }
+            } catch (err) {
+                alert('無法連線到伺服器');
+            }
         }
     </script>
 </body>
